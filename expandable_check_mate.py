@@ -1,7 +1,13 @@
 import streamlit as st
+from pathlib import Path
 from PIL import Image, ImageDraw
 import cv2
 import numpy as np
+
+ASSETS_DIR = Path(__file__).parent / "assets"
+CLOSE_BTN_ICON = ASSETS_DIR / "ic_cancel.png"
+CLOSE_BTN_SIZE = 48
+CLOSE_BTN_MARGIN = 20
 
 # 1. 페이지 설정
 st.set_page_config(
@@ -47,7 +53,7 @@ BANNER_SPECS = {
         "crop_right": 0,
         "crop_left": 0,
         "close_btn": True,          # 우상단 닫기버튼 영역 표시
-        "close_btn_size": 60,       # 닫기버튼 영역 크기 (px)
+        "close_btn_size": CLOSE_BTN_MARGIN + CLOSE_BTN_SIZE,  # 닫기버튼 영역 (px)
         "description": "686 × 380 px  |  150 KB 이하  |  우상단 닫기버튼 영역 주의",
     },
 }
@@ -76,11 +82,12 @@ def apply_guide_overlay(pil_image, banner_type):
         btn = cfg["close_btn_size"]
         # 우상단 닫기버튼 영역 (빨간색)
         draw.rectangle([(width - btn, 0), (width, btn)], fill=red)
-        # 대각선 X 표시
-        draw.line([(width - btn + 8, 8), (width - 8, btn - 8)],
-                  fill=(255, 255, 255, 200), width=3)
-        draw.line([(width - 8, 8), (width - btn + 8, btn - 8)],
-                  fill=(255, 255, 255, 200), width=3)
+        close_icon = Image.open(CLOSE_BTN_ICON).convert("RGBA").resize(
+            (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE), Image.Resampling.LANCZOS
+        )
+        x = width - CLOSE_BTN_MARGIN - CLOSE_BTN_SIZE
+        y = CLOSE_BTN_MARGIN
+        overlay.paste(close_icon, (x, y), close_icon)
 
     return Image.alpha_composite(canvas, overlay).convert("RGB")
 
@@ -103,14 +110,21 @@ h1, h2, h3, h4 { color: #FFFFFF !important; }
 }
 
 /* 탭 스타일 */
+.stTabs [data-baseweb="tab-border"] {
+    background-color: #FFFFFF !important;
+}
+.stTabs [data-baseweb="tab-highlight"] {
+    background-color: #FFFFFF !important;
+}
 button[data-baseweb="tab"] {
     color: #AAAAAA !important;
     font-size: 1rem !important;
     font-weight: 600 !important;
+    border-bottom-color: #FFFFFF !important;
 }
 button[data-baseweb="tab"][aria-selected="true"] {
     color: #FFFFFF !important;
-    border-bottom: 2px solid #00E676 !important;
+    border-bottom: 2px solid #FFFFFF !important;
 }
 
 /* 검수 결과 */
@@ -297,7 +311,7 @@ def render_tab(banner_type):
     if banner_type == "대표이미지":
         caption = "대표이미지 가이드 프리뷰 — 우측 크롭 영역(빨간색) 침범 여부를 직접 확인하세요"
     else:
-        caption = "확장이미지 가이드 프리뷰 — 우상단 닫기버튼 영역(빨간색 X) 가독성을 직접 확인하세요"
+        caption = "확장이미지 가이드 프리뷰 — 우상단 닫기버튼 영역(빨간색) 가독성을 직접 확인하세요"
 
     st.image(preview, caption=caption, width=actual_w)
 
