@@ -67,6 +67,9 @@ VIDEO_SPECS = {
     "formats": ["mp4", "avi"],
 }
 
+ALLOWED_IMAGE_EXT = {"png", "jpg", "jpeg"}
+ALLOWED_VIDEO_EXT = set(VIDEO_SPECS["formats"])
+
 
 def analyze_video(uploaded_file):
     suffix = Path(uploaded_file.name).suffix.lower()
@@ -88,6 +91,64 @@ def analyze_video(uploaded_file):
     Path(tmp_path).unlink(missing_ok=True)
 
     return {"width": width, "height": height, "duration": duration, "fps": fps}
+
+
+def classify_batch_files(files):
+    """대표(686×200), 확장(686×380), 영상(mp4/avi)으로 분류."""
+    rep_size = BANNER_SPECS["대표이미지"]["size"]
+    exp_size = BANNER_SPECS["확장이미지"]["size"]
+    result = {
+        "대표이미지": None,
+        "확장이미지": None,
+        "video": None,
+        "warnings": [],
+        "unmatched": [],
+    }
+    video_candidates = []
+    for f in files:
+        ext = Path(f.name).suffix.lstrip(".").lower()
+        if ext in ALLOWED_VIDEO_EXT:
+            video_candidates.append(f)
+        elif ext in ALLOWED_IMAGE_EXT:
+            try:
+                f.seek(0)
+                with Image.open(f) as im:
+                    w, h = im.size
+                f.seek(0)
+            except OSError:
+                result["warnings"].append(f"`{f.name}`: 이미지로 열 수 없습니다.")
+                continue
+            if (w, h) == rep_size:
+                if result["대표이미지"] is None:
+                    result["대표이미지"] = f
+                else:
+                    result["warnings"].append(
+                        f"대표이미지 규격 파일이 여러 개입니다. `{f.name}` 은(는) 무시됩니다."
+                    )
+            elif (w, h) == exp_size:
+                if result["확장이미지"] is None:
+                    result["확장이미지"] = f
+                else:
+                    result["warnings"].append(
+                        f"확장이미지 규격 파일이 여러 개입니다. `{f.name}` 은(는) 무시됩니다."
+                    )
+            else:
+                result["unmatched"].append((f.name, w, h))
+        else:
+            result["warnings"].append(
+                f"`{f.name}`: 이미지(PNG/JPG) 또는 영상(MP4/AVI)이 아닙니다."
+            )
+
+    if len(video_candidates) == 1:
+        result["video"] = video_candidates[0]
+    elif len(video_candidates) > 1:
+        result["video"] = video_candidates[0]
+        for extra in video_candidates[1:]:
+            result["warnings"].append(
+                f"영상 파일이 여러 개입니다. `{extra.name}` 은(는) 무시됩니다."
+            )
+
+    return result
 
 
 # ── 가이드 오버레이 함수 ────────────────────────────────────────
@@ -223,67 +284,15 @@ footer { visibility: hidden; }
 st.title("Check Mate : 익스팬더블 배너 검수")
 st.caption("익스팬더블 광고 배너 소재 품질 및 규격 사전 검증 프로그램")
 
-# ── 탭 구성 ────────────────────────────────────────────────────
-tab1, tab2, tab3 = st.tabs(["📌 대표이미지 검수", "📐 확장이미지 검수", "🎬 동영상 검수"])
 
-
-def render_tab(banner_type):
+def render_image_results(banner_type, uploaded):
+    """이미지 검수 결과·프리뷰 (업로더 제외)."""
     cfg = BANNER_SPECS[banner_type]
     exp_w, exp_h = cfg["size"]
 
-    # 가이드 범례
-    if banner_type == "대표이미지":
-        guide_html = """
-        <div class="guide-container">
-          <div class="guide-row">
-            <div class="guide-item">
-              <div class="color-box" style="background:rgba(160,80,255,0.8);"></div>우측 크롭 영역 (108px)
-            </div>
-            <div class="warning-text" style="color:#DDDDDD;">
-              ⚠️ 문구·메인 상품·비주얼이 우측 크롭 영역에 걸리지 않도록 확인하세요!
-            </div>
-          </div>
-          <div class="guide-row">
-            <div class="warning-text" style="color:#FF5252;">
-              ⚠️ 광고 플래그는 시스템 자동 부착 — 이미지에 광고 문구가 포함되어 있으면 안됩니다!
-            </div>
-          </div>
-        </div>
-        """
-    else:
-        guide_html = """
-        <div class="guide-container">
-          <div class="guide-row">
-            <div class="guide-item">
-              <div class="color-box" style="background:rgba(255,50,50,0.8);"></div>우상단 닫기버튼 영역
-            </div>
-            <div class="warning-text" style="color:#DDDDDD;">
-              ⚠️ 비주얼 복잡도로 닫기버튼 가독성을 해치지 않는지 직접 확인하세요!
-            </div>
-          </div>
-          <div class="guide-row">
-            <div class="warning-text" style="color:#FF5252;">
-              ⚠️ 광고 플래그는 시스템 자동 부착 — 이미지에 광고 문구가 포함되어 있으면 안됩니다!
-            </div>
-          </div>
-        </div>
-        """
-
-    st.markdown(guide_html, unsafe_allow_html=True)
-
-    allowed_image_ext = {"png", "jpg", "jpeg"}
-
-    # 파일 업로더
-    uploaded = st.file_uploader(
-        f"{banner_type} 시안 이미지를 업로드하세요",
-        key=f"uploader_{banner_type}",
-    )
-
-    if not uploaded:
-        return
-
+    uploaded.seek(0)
     file_ext = Path(uploaded.name).suffix.lstrip(".").lower()
-    if file_ext not in allowed_image_ext:
+    if file_ext not in ALLOWED_IMAGE_EXT:
         st.warning("이미지 파일로 업로드 해주세요.")
         return
 
@@ -297,7 +306,6 @@ def render_tab(banner_type):
     with st.spinner("이미지 품질을 분석 중입니다..."):
         is_blurry, is_pixelated, quality_score = evaluate_quality(image)
 
-    # ── 검수 결과 3열 ──
     col1, col2, col3 = st.columns(3)
 
     with col1:
@@ -339,52 +347,23 @@ def render_tab(banner_type):
             )
 
     st.divider()
-
-    # ── 오버레이 프리뷰 ──
     preview = apply_guide_overlay(image, banner_type)
-
     if banner_type == "대표이미지":
         caption = "대표이미지 가이드 프리뷰 — 우측 크롭 영역(보라색) 침범 여부를 직접 확인하세요"
     else:
         caption = "확장이미지 가이드 프리뷰 — 우상단 닫기버튼 영역(빨간색) 가독성을 직접 확인하세요"
-
     st.image(preview, caption=caption, width=actual_w)
 
 
-with tab1:
-    render_tab("대표이미지")
-
-with tab2:
-    render_tab("확장이미지")
-
-
-def render_video_tab():
+def render_video_results(uploaded):
+    """동영상 검수 결과·프리뷰 (업로더·가이드 제외)."""
     min_w, min_h = VIDEO_SPECS["min_size"]
     target_ratio = VIDEO_SPECS["aspect_ratio"]
     max_mb = VIDEO_SPECS["max_mb"]
     max_duration = VIDEO_SPECS["max_duration_sec"]
-    allowed_formats = VIDEO_SPECS["formats"]
+    allowed_formats = list(VIDEO_SPECS["formats"])
 
-    guide_html = """
-    <div class="guide-container">
-      <div class="guide-row">
-        <div class="guide-item">📐 해상도: 16:9 비율  |  최소 686 × 380 px 이상</div>
-        <div class="guide-item">⏱️ 영상 길이: 60초 이내 권장</div>
-        <div class="guide-item">💾 용량: 30 MB 이하</div>
-        <div class="guide-item">📁 포맷: MP4, AVI</div>
-      </div>
-    </div>
-    """
-    st.markdown(guide_html, unsafe_allow_html=True)
-
-    uploaded = st.file_uploader(
-        "동영상 시안을 업로드하세요",
-        key="uploader_video",
-    )
-
-    if not uploaded:
-        return
-
+    uploaded.seek(0)
     file_ext = Path(uploaded.name).suffix.lstrip(".").lower()
     if file_ext not in allowed_formats:
         st.warning("영상 파일로 업로드 해주세요.")
@@ -452,8 +431,145 @@ def render_video_tab():
             st.warning(f"영상 길이가 {max_duration}초를 초과했습니다. 60초 이내로 편집해 주세요.")
 
     st.divider()
+    uploaded.seek(0)
     st.video(uploaded)
 
+
+def render_tab(banner_type):
+    # 가이드 범례
+    if banner_type == "대표이미지":
+        guide_html = """
+        <div class="guide-container">
+          <div class="guide-row">
+            <div class="guide-item">
+              <div class="color-box" style="background:rgba(160,80,255,0.8);"></div>우측 크롭 영역 (108px)
+            </div>
+            <div class="warning-text" style="color:#DDDDDD;">
+              ⚠️ 문구·메인 상품·비주얼이 우측 크롭 영역에 걸리지 않도록 확인하세요!
+            </div>
+          </div>
+          <div class="guide-row">
+            <div class="warning-text" style="color:#FF5252;">
+              ⚠️ 광고 플래그는 시스템 자동 부착 — 이미지에 광고 문구가 포함되어 있으면 안됩니다!
+            </div>
+          </div>
+        </div>
+        """
+    else:
+        guide_html = """
+        <div class="guide-container">
+          <div class="guide-row">
+            <div class="guide-item">
+              <div class="color-box" style="background:rgba(255,50,50,0.8);"></div>우상단 닫기버튼 영역
+            </div>
+            <div class="warning-text" style="color:#DDDDDD;">
+              ⚠️ 비주얼 복잡도로 닫기버튼 가독성을 해치지 않는지 직접 확인하세요!
+            </div>
+          </div>
+          <div class="guide-row">
+            <div class="warning-text" style="color:#FF5252;">
+              ⚠️ 광고 플래그는 시스템 자동 부착 — 이미지에 광고 문구가 포함되어 있으면 안됩니다!
+            </div>
+          </div>
+        </div>
+        """
+
+    st.markdown(guide_html, unsafe_allow_html=True)
+
+    uploaded = st.file_uploader(
+        f"{banner_type} 시안 이미지를 업로드하세요",
+        key=f"uploader_{banner_type}",
+    )
+
+    if not uploaded:
+        return
+
+    file_ext = Path(uploaded.name).suffix.lstrip(".").lower()
+    if file_ext not in ALLOWED_IMAGE_EXT:
+        st.warning("이미지 파일로 업로드 해주세요.")
+        return
+
+    render_image_results(banner_type, uploaded)
+
+
+def render_video_tab():
+    guide_html = """
+    <div class="guide-container">
+      <div class="guide-row">
+        <div class="guide-item">📐 해상도: 16:9 비율  |  최소 686 × 380 px 이상</div>
+        <div class="guide-item">⏱️ 영상 길이: 60초 이내 권장</div>
+        <div class="guide-item">💾 용량: 30 MB 이하</div>
+        <div class="guide-item">📁 포맷: MP4, AVI</div>
+      </div>
+    </div>
+    """
+    st.markdown(guide_html, unsafe_allow_html=True)
+
+    uploaded = st.file_uploader(
+        "동영상 시안을 업로드하세요",
+        key="uploader_video",
+    )
+
+    if not uploaded:
+        return
+
+    render_video_results(uploaded)
+
+
+# ── 일괄 업로드 (드래그 앤 드롭) ─────────────────────────────────
+st.subheader("일괄 검수")
+st.caption(
+    "대표이미지 **686×200** px, 확장이미지 **686×380** px, 동영상 **MP4/AVI** 를 한 번에 올리면 "
+    "해상도로 이미지를 구분하고 영상을 자동 검증합니다."
+)
+batch_files = st.file_uploader(
+    "소재 파일을 한 번에 선택하거나 드래그 앤 드롭하세요",
+    accept_multiple_files=True,
+    key="batch_uploader_all",
+)
+if batch_files:
+    assigned = classify_batch_files(list(batch_files))
+    for w in assigned["warnings"]:
+        st.warning(w)
+    for name, w, h in assigned["unmatched"]:
+        st.info(
+            f"`{name}` ({w}×{h}px) 은(는) 대표·확장 규격과 달라 일괄 검수에 포함되지 않았습니다. "
+            "아래 탭에서 개별 업로드하세요."
+        )
+
+    st.markdown("##### 일괄 검수 결과")
+    with st.expander("📌 대표이미지", expanded=True):
+        if assigned["대표이미지"]:
+            st.caption(assigned["대표이미지"].name)
+            render_image_results("대표이미지", assigned["대표이미지"])
+        else:
+            st.info("686×200 px 규격 이미지가 감지되지 않았습니다.")
+
+    with st.expander("📐 확장이미지", expanded=True):
+        if assigned["확장이미지"]:
+            st.caption(assigned["확장이미지"].name)
+            render_image_results("확장이미지", assigned["확장이미지"])
+        else:
+            st.info("686×380 px 규격 이미지가 감지되지 않았습니다.")
+
+    with st.expander("🎬 동영상", expanded=True):
+        if assigned["video"]:
+            st.caption(assigned["video"].name)
+            render_video_results(assigned["video"])
+        else:
+            st.info("MP4 또는 AVI 영상이 감지되지 않았습니다.")
+
+st.divider()
+
+# ── 탭 구성 ────────────────────────────────────────────────────
+tab1, tab2, tab3 = st.tabs(["📌 대표이미지 검수", "📐 확장이미지 검수", "🎬 동영상 검수"])
+
+
+with tab1:
+    render_tab("대표이미지")
+
+with tab2:
+    render_tab("확장이미지")
 
 with tab3:
     render_video_tab()
