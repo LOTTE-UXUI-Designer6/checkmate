@@ -271,14 +271,20 @@ def render_tab(banner_type):
 
     st.markdown(guide_html, unsafe_allow_html=True)
 
+    allowed_image_ext = {"png", "jpg", "jpeg"}
+
     # 파일 업로더
     uploaded = st.file_uploader(
         f"{banner_type} 시안 이미지를 업로드하세요",
-        type=["png", "jpg", "jpeg"],
         key=f"uploader_{banner_type}",
     )
 
     if not uploaded:
+        return
+
+    file_ext = Path(uploaded.name).suffix.lstrip(".").lower()
+    if file_ext not in allowed_image_ext:
+        st.warning("이미지 파일로 업로드 해주세요.")
         return
 
     image = Image.open(uploaded).convert("RGB")
