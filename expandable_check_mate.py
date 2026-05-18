@@ -60,7 +60,8 @@ BANNER_SPECS = {
 }
 
 VIDEO_SPECS = {
-    "size": (1280, 720),
+    "min_size": (686, 380),
+    "aspect_ratio": 16 / 9,
     "max_mb": 30,
     "max_duration_sec": 60,
     "formats": ["mp4", "avi"],
@@ -352,7 +353,8 @@ with tab2:
 
 
 def render_video_tab():
-    exp_w, exp_h = VIDEO_SPECS["size"]
+    min_w, min_h = VIDEO_SPECS["min_size"]
+    target_ratio = VIDEO_SPECS["aspect_ratio"]
     max_mb = VIDEO_SPECS["max_mb"]
     max_duration = VIDEO_SPECS["max_duration_sec"]
     allowed_formats = VIDEO_SPECS["formats"]
@@ -360,7 +362,7 @@ def render_video_tab():
     guide_html = """
     <div class="guide-container">
       <div class="guide-row">
-        <div class="guide-item">📐 해상도: 1280 × 720 px (16:9)</div>
+        <div class="guide-item">📐 해상도: 16:9 비율  |  최소 686 × 380 px 이상</div>
         <div class="guide-item">⏱️ 영상 길이: 60초 이내 권장</div>
         <div class="guide-item">💾 용량: 30 MB 이하</div>
         <div class="guide-item">📁 포맷: MP4, AVI</div>
@@ -371,7 +373,6 @@ def render_video_tab():
 
     uploaded = st.file_uploader(
         "동영상 시안을 업로드하세요",
-        type=allowed_formats,
         key="uploader_video",
     )
 
@@ -379,6 +380,10 @@ def render_video_tab():
         return
 
     file_ext = Path(uploaded.name).suffix.lstrip(".").lower()
+    if file_ext not in allowed_formats:
+        st.warning("영상 파일로 업로드 해주세요.")
+        return
+
     file_size_mb = uploaded.size / (1024 * 1024)
 
     with st.spinner("동영상 정보를 분석 중입니다..."):
@@ -390,10 +395,10 @@ def render_video_tab():
 
     actual_w, actual_h = meta["width"], meta["height"]
     duration = meta["duration"]
-    fps = meta["fps"]
 
-    is_dim_valid = (actual_w, actual_h) == (exp_w, exp_h)
-    is_ratio_valid = abs(actual_w / actual_h - 16 / 9) < 0.01 if actual_h > 0 else False
+    is_ratio_valid = abs(actual_w / actual_h - target_ratio) < 0.01 if actual_h > 0 else False
+    is_min_size_valid = actual_w >= min_w and actual_h >= min_h
+    is_dim_valid = is_ratio_valid and is_min_size_valid
     is_size_valid = file_size_mb <= max_mb
     is_format_valid = file_ext in allowed_formats
     is_duration_valid = duration <= max_duration
@@ -407,7 +412,7 @@ def render_video_tab():
         ratio_note = "16:9" if is_ratio_valid else f"{actual_w}:{actual_h}"
         st.markdown(
             f'<div class="status-text">업로드: {actual_w}×{actual_h}px ({ratio_note})'
-            f'  |  권장: {exp_w}×{exp_h}px</div>',
+            f'  |  최소: {min_w}×{min_h}px (16:9)</div>',
             unsafe_allow_html=True,
         )
 
