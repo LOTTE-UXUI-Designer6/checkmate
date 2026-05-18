@@ -1,4 +1,5 @@
 import streamlit as st
+import tempfile
 from pathlib import Path
 from PIL import Image, ImageDraw
 import cv2
@@ -58,6 +59,35 @@ BANNER_SPECS = {
     },
 }
 
+VIDEO_SPECS = {
+    "size": (1280, 720),
+    "max_mb": 30,
+    "max_duration_sec": 60,
+    "formats": ["mp4", "avi"],
+}
+
+
+def analyze_video(uploaded_file):
+    suffix = Path(uploaded_file.name).suffix.lower()
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        tmp.write(uploaded_file.getvalue())
+        tmp_path = tmp.name
+
+    cap = cv2.VideoCapture(tmp_path)
+    if not cap.isOpened():
+        Path(tmp_path).unlink(missing_ok=True)
+        return None
+
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS) or 0
+    frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    duration = frame_count / fps if fps > 0 else 0
+    cap.release()
+    Path(tmp_path).unlink(missing_ok=True)
+
+    return {"width": width, "height": height, "duration": duration, "fps": fps}
+
 
 # ── 가이드 오버레이 함수 ────────────────────────────────────────
 def apply_guide_overlay(pil_image, banner_type):
@@ -67,16 +97,14 @@ def apply_guide_overlay(pil_image, banner_type):
     overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
 
-    red     = (255,  50,  50,  90)   # 닫기버튼 / 크롭 위험 영역
-    emerald = ( 50, 255, 170,  76)   # 안전여백 힌트 (미사용 시 생략 가능)
+    red    = (255,  50,  50,  90)   # 닫기버튼 영역
+    purple = (160,  80, 255,  90)   # 우측 크롭 영역 (보라톤)
 
     if banner_type == "대표이미지":
         crop_r = cfg["crop_right"]
-        # 우측 크롭 영역 (빨간색)
-        draw.rectangle([(width - crop_r, 0), (width, height)], fill=red)
-        # 크롭 경계선
+        draw.rectangle([(width - crop_r, 0), (width, height)], fill=purple)
         draw.line([(width - crop_r, 0), (width - crop_r, height)],
-                  fill=(255, 80, 80, 200), width=2)
+                  fill=(180, 100, 255, 200), width=2)
 
     elif banner_type == "확장이미지" and cfg.get("close_btn"):
         btn = cfg["close_btn_size"]
@@ -195,7 +223,7 @@ st.title("Check Mate : 익스팬더블 배너 검수")
 st.caption("익스팬더블 광고 배너 소재 품질 및 규격 사전 검증 프로그램")
 
 # ── 탭 구성 ────────────────────────────────────────────────────
-tab1, tab2 = st.tabs(["📌 대표이미지 검수", "📐 확장이미지 검수"])
+tab1, tab2, tab3 = st.tabs(["📌 대표이미지 검수", "📐 확장이미지 검수", "🎬 동영상 검수"])
 
 
 def render_tab(banner_type):
@@ -208,7 +236,7 @@ def render_tab(banner_type):
         <div class="guide-container">
           <div class="guide-row">
             <div class="guide-item">
-              <div class="color-box" style="background:rgba(255,50,50,0.8);"></div>우측 크롭 영역 (108px)
+              <div class="color-box" style="background:rgba(160,80,255,0.8);"></div>우측 크롭 영역 (108px)
             </div>
             <div class="warning-text" style="color:#DDDDDD;">
               ⚠️ 문구·메인 상품·비주얼이 우측 크롭 영역에 걸리지 않도록 확인하세요!
@@ -309,7 +337,7 @@ def render_tab(banner_type):
     preview = apply_guide_overlay(image, banner_type)
 
     if banner_type == "대표이미지":
-        caption = "대표이미지 가이드 프리뷰 — 우측 크롭 영역(빨간색) 침범 여부를 직접 확인하세요"
+        caption = "대표이미지 가이드 프리뷰 — 우측 크롭 영역(보라색) 침범 여부를 직접 확인하세요"
     else:
         caption = "확장이미지 가이드 프리뷰 — 우상단 닫기버튼 영역(빨간색) 가독성을 직접 확인하세요"
 
@@ -321,3 +349,100 @@ with tab1:
 
 with tab2:
     render_tab("확장이미지")
+
+
+def render_video_tab():
+    exp_w, exp_h = VIDEO_SPECS["size"]
+    max_mb = VIDEO_SPECS["max_mb"]
+    max_duration = VIDEO_SPECS["max_duration_sec"]
+    allowed_formats = VIDEO_SPECS["formats"]
+
+    guide_html = """
+    <div class="guide-container">
+      <div class="guide-row">
+        <div class="guide-item">📐 해상도: 1280 × 720 px (16:9)</div>
+        <div class="guide-item">⏱️ 영상 길이: 60초 이내 권장</div>
+        <div class="guide-item">💾 용량: 30 MB 이하</div>
+        <div class="guide-item">📁 포맷: MP4, AVI</div>
+      </div>
+    </div>
+    """
+    st.markdown(guide_html, unsafe_allow_html=True)
+
+    uploaded = st.file_uploader(
+        "동영상 시안을 업로드하세요",
+        type=allowed_formats,
+        key="uploader_video",
+    )
+
+    if not uploaded:
+        return
+
+    file_ext = Path(uploaded.name).suffix.lstrip(".").lower()
+    file_size_mb = uploaded.size / (1024 * 1024)
+
+    with st.spinner("동영상 정보를 분석 중입니다..."):
+        meta = analyze_video(uploaded)
+
+    if meta is None:
+        st.error("동영상 파일을 읽을 수 없습니다. 파일이 손상되었거나 지원하지 않는 코덱일 수 있습니다.")
+        return
+
+    actual_w, actual_h = meta["width"], meta["height"]
+    duration = meta["duration"]
+    fps = meta["fps"]
+
+    is_dim_valid = (actual_w, actual_h) == (exp_w, exp_h)
+    is_ratio_valid = abs(actual_w / actual_h - 16 / 9) < 0.01 if actual_h > 0 else False
+    is_size_valid = file_size_mb <= max_mb
+    is_format_valid = file_ext in allowed_formats
+    is_duration_valid = duration <= max_duration
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    with col1:
+        css = "check-pass" if is_dim_valid else "check-fail"
+        label = "✅ 해상도 통과" if is_dim_valid else "❌ 해상도 오류"
+        st.markdown(f'<div class="{css}">{label}</div>', unsafe_allow_html=True)
+        ratio_note = "16:9" if is_ratio_valid else f"{actual_w}:{actual_h}"
+        st.markdown(
+            f'<div class="status-text">업로드: {actual_w}×{actual_h}px ({ratio_note})'
+            f'  |  권장: {exp_w}×{exp_h}px</div>',
+            unsafe_allow_html=True,
+        )
+
+    with col2:
+        css = "check-pass" if is_size_valid else "check-fail"
+        label = "✅ 용량 적합" if is_size_valid else "❌ 용량 초과"
+        st.markdown(f'<div class="{css}">{label}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="status-text">{file_size_mb:.1f} MB  |  제한: {max_mb} MB</div>',
+            unsafe_allow_html=True,
+        )
+
+    with col3:
+        css = "check-pass" if is_format_valid else "check-fail"
+        label = "✅ 포맷 적합" if is_format_valid else "❌ 포맷 오류"
+        st.markdown(f'<div class="{css}">{label}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="status-text">업로드: {file_ext.upper()}  |  허용: MP4, AVI</div>',
+            unsafe_allow_html=True,
+        )
+
+    with col4:
+        css = "check-pass" if is_duration_valid else "check-fail"
+        label = "✅ 길이 적합" if is_duration_valid else "⚠️ 길이 초과"
+        st.markdown(f'<div class="{css}">{label}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="status-text">{duration:.1f}초  |  권장: {max_duration}초 이내</div>',
+            unsafe_allow_html=True,
+        )
+        if not is_duration_valid:
+            st.warning(f"영상 길이가 {max_duration}초를 초과했습니다. 60초 이내로 편집해 주세요.")
+
+    st.divider()
+    st.video(uploaded)
+
+
+with tab3:
+    render_video_tab()
