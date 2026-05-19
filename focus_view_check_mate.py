@@ -311,7 +311,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
 
 /* LNB 커스텀 컴포넌트 */
 .lnb-wrap {
-    padding: 28px 20px 40px 20px;
+    padding: 28px 16px 40px 20px;
     font-family: 'Noto Sans KR', sans-serif;
 }
 
@@ -360,10 +360,10 @@ button[data-baseweb="tab"][aria-selected="true"] {
     opacity: 0.9;
 }
 .lnb-section-title {
-    font-size: 0.72rem !important;
+    font-size: 0.85rem !important;
     font-weight: 700 !important;
     color: #888888 !important;
-    letter-spacing: 0.08em;
+    letter-spacing: -0.02em;
     text-transform: uppercase;
 }
 
@@ -452,7 +452,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
     align-items: flex-start;
     gap: 8px;
     padding: 5px 0;
-    font-size: 0.73rem !important;
+    font-size: 0.8rem !important;
     color: #AAAAAA !important;
     line-height: 1.5;
     border-bottom: 1px solid #1A1A1A;
