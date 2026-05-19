@@ -119,19 +119,17 @@ def classify_batch_files(files):
                 result["warnings"].append(f"`{f.name}`: 이미지로 열 수 없습니다.")
                 continue
             if (w, h) == rep_size:
-                if result["대표이미지"] is None:
-                    result["대표이미지"] = f
-                else:
+                if result["대표이미지"] is not None:
                     result["warnings"].append(
-                        f"대표이미지 규격 파일이 여러 개입니다. `{f.name}` 은(는) 무시됩니다."
+                        f"대표이미지 규격 파일이 여러 개입니다. `{result['대표이미지'].name}` → `{f.name}`(으)로 교체됩니다."
                     )
+                result["대표이미지"] = f
             elif (w, h) == exp_size:
-                if result["확장이미지"] is None:
-                    result["확장이미지"] = f
-                else:
+                if result["확장이미지"] is not None:
                     result["warnings"].append(
-                        f"확장이미지 규격 파일이 여러 개입니다. `{f.name}` 은(는) 무시됩니다."
+                        f"확장이미지 규격 파일이 여러 개입니다. `{result['확장이미지'].name}` → `{f.name}`(으)로 교체됩니다."
                     )
+                result["확장이미지"] = f
             else:
                 result["unmatched"].append((f.name, w, h))
         else:
@@ -139,16 +137,49 @@ def classify_batch_files(files):
                 f"`{f.name}`: 이미지(PNG/JPG) 또는 영상(MP4/AVI)이 아닙니다."
             )
 
-    if len(video_candidates) == 1:
-        result["video"] = video_candidates[0]
-    elif len(video_candidates) > 1:
-        result["video"] = video_candidates[0]
-        for extra in video_candidates[1:]:
-            result["warnings"].append(
-                f"영상 파일이 여러 개입니다. `{extra.name}` 은(는) 무시됩니다."
-            )
+    if video_candidates:
+        if len(video_candidates) > 1:
+            for extra in video_candidates[:-1]:
+                result["warnings"].append(
+                    f"영상 파일이 여러 개입니다. `{extra.name}` → `{video_candidates[-1].name}`(으)로 교체됩니다."
+                )
+        result["video"] = video_candidates[-1]
 
     return result
+
+
+def resolve_batch_upload(files):
+    """기존 파일이 있을 때 새로 올리면 새 파일만 사용(바꿔치기)."""
+    if not files:
+        st.session_state["batch_prev_fps"] = []
+        return []
+
+    file_list = list(files)
+    current_fps = [(f.name, f.size) for f in file_list]
+    prev_fps = st.session_state.get("batch_prev_fps", [])
+
+    if prev_fps:
+        new_fps = [fp for fp in current_fps if fp not in prev_fps]
+        if new_fps:
+            if not set(current_fps) & set(prev_fps):
+                file_list = list(files)
+            else:
+                file_list = [f for f in file_list if (f.name, f.size) in new_fps]
+
+    st.session_state["batch_prev_fps"] = [(f.name, f.size) for f in file_list]
+    return file_list
+
+
+def resolve_single_upload(uploaded, state_key):
+    """단일 업로더: 새 파일 선택 시 이전 파일을 교체."""
+    fp_key = f"{state_key}_fp"
+    if not uploaded:
+        st.session_state.pop(fp_key, None)
+        return None
+
+    fp = (uploaded.name, uploaded.size)
+    st.session_state[fp_key] = fp
+    return uploaded
 
 
 # ── 가이드 오버레이 함수 ────────────────────────────────────────
@@ -159,8 +190,7 @@ def apply_guide_overlay(pil_image, banner_type):
     overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
 
-    red    = (255,  50,  50,  90)   # 닫기버튼 영역
-    purple = (160,  80, 255,  90)   # 우측 크롭 영역 (보라톤)
+    purple = (160,  80, 255,  90)   # 크롭·닫기버튼 영역 (보라톤)
 
     if banner_type == "대표이미지":
         crop_r = cfg["crop_right"]
@@ -170,8 +200,7 @@ def apply_guide_overlay(pil_image, banner_type):
 
     elif banner_type == "확장이미지" and cfg.get("close_btn"):
         btn = cfg["close_btn_size"]
-        # 우상단 닫기버튼 영역 (빨간색)
-        draw.rectangle([(width - btn, 0), (width, btn)], fill=red)
+        draw.rectangle([(width - btn, 0), (width, btn)], fill=purple)
         close_icon = Image.open(CLOSE_BTN_ICON).convert("RGBA").resize(
             (CLOSE_BTN_SIZE, CLOSE_BTN_SIZE), Image.Resampling.LANCZOS
         )
@@ -351,7 +380,7 @@ def render_image_results(banner_type, uploaded):
     if banner_type == "대표이미지":
         caption = "대표이미지 가이드 프리뷰 — 우측 크롭 영역(보라색) 침범 여부를 직접 확인하세요"
     else:
-        caption = "확장이미지 가이드 프리뷰 — 우상단 닫기버튼 영역(빨간색) 가독성을 직접 확인하세요"
+        caption = "확장이미지 가이드 프리뷰 — 우상단 닫기버튼 영역(보라색) 가독성을 직접 확인하세요"
     st.image(preview, caption=caption, width=actual_w)
 
 
@@ -460,7 +489,7 @@ def render_tab(banner_type):
         <div class="guide-container">
           <div class="guide-row">
             <div class="guide-item">
-              <div class="color-box" style="background:rgba(255,50,50,0.8);"></div>우상단 닫기버튼 영역
+              <div class="color-box" style="background:rgba(160,80,255,0.8);"></div>우상단 닫기버튼 영역
             </div>
             <div class="warning-text" style="color:#DDDDDD;">
               ⚠️ 비주얼 복잡도로 닫기버튼 가독성을 해치지 않는지 직접 확인하세요!
@@ -480,6 +509,7 @@ def render_tab(banner_type):
         f"{banner_type} 시안 이미지를 업로드하세요",
         key=f"uploader_{banner_type}",
     )
+    uploaded = resolve_single_upload(uploaded, f"uploader_{banner_type}")
 
     if not uploaded:
         return
@@ -509,6 +539,7 @@ def render_video_tab():
         "동영상 시안을 업로드하세요",
         key="uploader_video",
     )
+    uploaded = resolve_single_upload(uploaded, "uploader_video")
 
     if not uploaded:
         return
@@ -528,7 +559,8 @@ batch_files = st.file_uploader(
     key="batch_uploader_all",
 )
 if batch_files:
-    assigned = classify_batch_files(list(batch_files))
+    batch_files = resolve_batch_upload(batch_files)
+    assigned = classify_batch_files(batch_files)
     for w in assigned["warnings"]:
         st.warning(w)
     for name, w, h in assigned["unmatched"]:
@@ -561,7 +593,9 @@ if batch_files:
 
 st.divider()
 
-# ── 탭 구성 ────────────────────────────────────────────────────
+# ── 개별 검수 (탭) ─────────────────────────────────────────────
+st.subheader("개별 검수")
+
 tab1, tab2, tab3 = st.tabs(["📌 대표이미지 검수", "📐 확장이미지 검수", "🎬 동영상 검수"])
 
 
