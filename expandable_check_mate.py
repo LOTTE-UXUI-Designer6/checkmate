@@ -289,7 +289,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
 [data-testid="stSidebar"] * { font-family: 'Noto Sans KR', sans-serif !important; }
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] li,
-[data-testid="stSidebar"] span { color: #CCCCCC !important; }
+[data-testid="stSidebar"] span { color: #f2f2f2 !important; }
 
 /* LNB 커스텀 컴포넌트 */
 .lnb-wrap { padding: 28px 20px 40px 20px; font-family: 'Noto Sans KR', sans-serif; }
@@ -533,30 +533,6 @@ with st.sidebar:
 
       <hr class="lnb-divider">
 
-      <!-- 오버레이 가이드 -->
-      <div class="lnb-section">
-        <div class="lnb-section-header">
-          <span class="lnb-section-icon">🎨</span>
-          <span class="lnb-section-title">프리뷰 오버레이 안내</span>
-        </div>
-        <div class="lnb-card">
-          <div class="lnb-overlay-item">
-            <div class="lnb-overlay-dot" style="background:#A050FF;"></div>
-            <span><strong style="color:#EEE;">대표이미지</strong> — 우측 크롭 108px 보라색 오버레이</span>
-          </div>
-          <div class="lnb-overlay-item">
-            <div class="lnb-overlay-dot" style="background:#A050FF;"></div>
-            <span><strong style="color:#EEE;">확장이미지</strong> — 우상단 닫기버튼 68px 보라색 오버레이</span>
-          </div>
-        </div>
-        <div class="lnb-tip">
-          <div class="lnb-tip-label">💡 TIP</div>
-          <p>소재 업로드 시 오버레이가 <strong style="color:#AAEECC;">자동으로</strong> 표시됩니다. 보라색 영역 안에 핵심 요소가 걸리지 않는지 확인하세요.</p>
-        </div>
-      </div>
-
-      <hr class="lnb-divider">
-
       <!-- 공통 주의사항 -->
       <div class="lnb-section">
         <div class="lnb-section-header">
@@ -585,47 +561,7 @@ with st.sidebar:
 
       <hr class="lnb-divider">
 
-      <!-- 일괄 검수 자동 분류 기준 -->
-      <div class="lnb-section">
-        <div class="lnb-section-header">
-          <span class="lnb-section-icon">📋</span>
-          <span class="lnb-section-title">일괄 검수 자동 분류 기준</span>
-        </div>
-        <ul class="lnb-checklist">
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span>파일명에 <strong style="color:#EEE;">대표이미지 · 확장전</strong> 포함 → 대표이미지</span>
-          </li>
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span>파일명에 <strong style="color:#EEE;">확장형 · 확장후</strong> 포함 → 확장이미지</span>
-          </li>
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span>파일명에 <strong style="color:#EEE;">686x200</strong> 패턴 → 대표이미지</span>
-          </li>
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span>파일명에 <strong style="color:#EEE;">686x380</strong> 패턴 → 확장이미지</span>
-          </li>
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span>실제 해상도 <strong style="color:#EEE;">686×200</strong> → 대표이미지로 분류</span>
-          </li>
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span>실제 해상도 <strong style="color:#EEE;">686×380</strong> → 확장이미지로 분류</span>
-          </li>
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span><strong style="color:#EEE;">MP4 · AVI</strong> 확장자 → 동영상으로 자동 분류</span>
-          </li>
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span>분류 불가 파일은 개별 검수 탭에서 직접 업로드</span>
-          </li>
-        </ul>
-      </div>
+     
 
       <!-- 푸터 -->
       <div class="lnb-footer">
