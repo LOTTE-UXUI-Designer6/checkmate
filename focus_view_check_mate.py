@@ -339,8 +339,8 @@ button[data-baseweb="tab"][aria-selected="true"] {
     line-height: 1.2;
 }
 .lnb-logo-sub {
-    font-size: 0.7rem;
-    color: #666666 !important;
+    font-size: 0.8rem;
+    color: #eeeeee !important;
     font-weight: 400;
     margin-top: 2px;
 }
@@ -833,7 +833,7 @@ st.caption("포커스뷰 광고 배너 및 동영상 소재 품질 및 규격 �
 # ── 일괄 검수 ─────────────────────────────────────────────────
 st.subheader("일괄 검수")
 st.caption(
-    "배너이미지 **686×386** px 또는 파일명에 **배너·banner**, 동영상 **MP4/AVI** 를 한 번에 올리면 "
+    "배너이미지 **686×386** px , 동영상 **MP4/AVI** 를 한 번에 올리면 "
     "자동으로 분류·검증합니다."
 )
 batch_files = st.file_uploader(
