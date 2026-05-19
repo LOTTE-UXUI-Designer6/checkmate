@@ -69,6 +69,23 @@ VIDEO_SPECS = {
 
 ALLOWED_IMAGE_EXT = {"png", "jpg", "jpeg"}
 ALLOWED_VIDEO_EXT = set(VIDEO_SPECS["formats"])
+QUALITY_THRESHOLD = 60
+
+
+def match_image_slot(filename, width, height):
+    """규격 또는 파일명으로 대표/확장 슬롯 판별."""
+    rep_size = BANNER_SPECS["대표이미지"]["size"]
+    exp_size = BANNER_SPECS["확장이미지"]["size"]
+
+    if "확장형" in filename or "확장후" in filename:
+        return "확장이미지"
+    if "대표이미지" in filename or "확장전" in filename:
+        return "대표이미지"
+    if (width, height) == exp_size:
+        return "확장이미지"
+    if (width, height) == rep_size:
+        return "대표이미지"
+    return None
 
 
 def analyze_video(uploaded_file):
@@ -94,9 +111,7 @@ def analyze_video(uploaded_file):
 
 
 def classify_batch_files(files):
-    """대표(686×200), 확장(686×380), 영상(mp4/avi)으로 분류."""
-    rep_size = BANNER_SPECS["대표이미지"]["size"]
-    exp_size = BANNER_SPECS["확장이미지"]["size"]
+    """대표/확장: 규격(686×200, 686×380) 또는 파일명으로 분류. 영상: mp4/avi."""
     result = {
         "대표이미지": None,
         "확장이미지": None,
@@ -118,20 +133,17 @@ def classify_batch_files(files):
             except OSError:
                 result["warnings"].append(f"`{f.name}`: 이미지로 열 수 없습니다.")
                 continue
-            if (w, h) == rep_size:
-                if result["대표이미지"] is not None:
-                    result["warnings"].append(
-                        f"대표이미지 규격 파일이 여러 개입니다. `{result['대표이미지'].name}` → `{f.name}`(으)로 교체됩니다."
-                    )
-                result["대표이미지"] = f
-            elif (w, h) == exp_size:
-                if result["확장이미지"] is not None:
-                    result["warnings"].append(
-                        f"확장이미지 규격 파일이 여러 개입니다. `{result['확장이미지'].name}` → `{f.name}`(으)로 교체됩니다."
-                    )
-                result["확장이미지"] = f
-            else:
+
+            slot = match_image_slot(f.name, w, h)
+            if slot is None:
                 result["unmatched"].append((f.name, w, h))
+                continue
+
+            if result[slot] is not None:
+                result["warnings"].append(
+                    f"{slot} 파일이 여러 개입니다. `{result[slot].name}` → `{f.name}`(으)로 교체됩니다."
+                )
+            result[slot] = f
         else:
             result["warnings"].append(
                 f"`{f.name}`: 이미지(PNG/JPG) 또는 영상(MP4/AVI)이 아닙니다."
@@ -357,20 +369,23 @@ def render_image_results(banner_type, uploaded):
         )
 
     with col3:
-        if not is_blurry and not is_pixelated and quality_score >= 60:
+        is_quality_pass = quality_score >= QUALITY_THRESHOLD
+        if is_quality_pass:
             st.markdown('<div class="check-pass">✅ 화질 양호</div>', unsafe_allow_html=True)
             st.markdown(
-                f'<div class="status-text">품질 점수: {quality_score:.0f}점</div>',
+                f'<div class="status-text">품질 점수: {quality_score:.0f}점'
+                f'  |  기준: {QUALITY_THRESHOLD}점 이상</div>',
                 unsafe_allow_html=True,
             )
         else:
             st.markdown('<div class="check-fail">⚠️ 화질 저하</div>', unsafe_allow_html=True)
             st.markdown(
-                f'<div class="status-text">품질 점수: {quality_score:.0f}점</div>',
+                f'<div class="status-text">품질 점수: {quality_score:.0f}점'
+                f'  |  기준: {QUALITY_THRESHOLD}점 이상</div>',
                 unsafe_allow_html=True,
             )
             st.warning(
-                "화질 점수가 기준(60점)에 미달되었습니다.\n\n"
+                f"화질 점수가 기준({QUALITY_THRESHOLD}점)에 미달되었습니다.\n\n"
                 "고화질 원본 이미지로 교체해 주시고,\n"
                 "동일한 경고가 뜬다면 UX디자인팀에 검수 요청을 해주세요."
             )
@@ -550,8 +565,9 @@ def render_video_tab():
 # ── 일괄 업로드 (드래그 앤 드롭) ─────────────────────────────────
 st.subheader("일괄 검수")
 st.caption(
-    "대표이미지 **686×200** px, 확장이미지 **686×380** px, 동영상 **MP4/AVI** 를 한 번에 올리면 "
-    "해상도로 이미지를 구분하고 영상을 자동 검증합니다."
+    "대표이미지 **686×200** px 또는 파일명에 **대표이미지·확장전**, "
+    "확장이미지 **686×380** px 또는 파일명에 **확장형·확장후**, 동영상 **MP4/AVI** 를 한 번에 올리면 "
+    "자동으로 분류·검증합니다."
 )
 batch_files = st.file_uploader(
     "소재 파일을 한 번에 선택하거나 드래그 앤 드롭하세요",
