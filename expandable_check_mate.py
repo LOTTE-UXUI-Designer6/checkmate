@@ -575,7 +575,7 @@ with st.sidebar:
 
 # ── 메인 UI ────────────────────────────────────────────────────
 st.title("Check Mate : 익스팬더블 배너 검수")
-st.caption("익스팬더블 광고 배너 소재 품질 및 규격 사전 검증 프로그램")
+st.caption("익스팬더블 광고 배너 소재 품질 및 규격 검수 프로그램")
 
 
 def render_image_results(banner_type, uploaded):
