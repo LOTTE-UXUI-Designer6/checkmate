@@ -3,11 +3,12 @@ import unicodedata
 import streamlit as st
 import tempfile
 from pathlib import Path
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import cv2
 import numpy as np
+import io
 
-# 1. 페이지 설정
+# ── 페이지 설정 ────────────────────────────────────────────────
 st.set_page_config(
     page_title="Check Mate : 포커스뷰",
     page_icon="✅",
@@ -36,15 +37,17 @@ def evaluate_quality(pil_image):
 
 
 # ── 규격 정의 ──────────────────────────────────────────────────
+CANVAS_W, CANVAS_H = 686, 386
+
 BANNER_SPECS = {
     "배너이미지": {
-        "size": (686, 386),
-        "description": "686 × 386 px",
+        "size": (CANVAS_W, CANVAS_H),
+        "description": f"{CANVAS_W} × {CANVAS_H} px",
     },
 }
 
 VIDEO_SPECS = {
-    "min_size": (686, 386),
+    "min_size": (CANVAS_W, CANVAS_H),
     "aspect_ratio": 16 / 9,
     "max_mb": 30,
     "max_duration_sec": 15,
@@ -54,6 +57,104 @@ VIDEO_SPECS = {
 ALLOWED_IMAGE_EXT = {"png", "jpg", "jpeg"}
 ALLOWED_VIDEO_EXT = set(VIDEO_SPECS["formats"])
 QUALITY_THRESHOLD = 60
+
+# ── 배치 가이드 영역 정의 (686 × 386 기준) ──────────────────────
+#
+#  ┌──────────────────────────────────────────────────┐
+#  │ [로고 영역]         x:24  y:24   w:160 h:60      │
+#  │                                                  │
+#  │         [메인 이미지 영역]                         │
+#  │         x:163 y:40  w:360 h:220                  │
+#  │                                                  │
+#  │ [텍스트 영역]                        [버튼 위치]   │
+#  │  x:24  y:250  w:300 h:80     x:480 y:295 w:180 h:55 │
+#  └──────────────────────────────────────────────────┘
+#
+LAYOUT_ZONES = [
+    {
+        "name": "메인 이미지 영역",
+        "rect": (163, 40, 523, 260),
+        "fill": (255, 200, 0, 70),
+        "border": (255, 200, 0, 220),
+    },
+    {
+        "name": "로고 영역",
+        "rect": (24, 24, 184, 84),
+        "fill": (0, 200, 255, 80),
+        "border": (0, 200, 255, 230),
+    },
+    {
+        "name": "텍스트 영역",
+        "rect": (24, 250, 324, 330),
+        "fill": (120, 80, 255, 75),
+        "border": (160, 100, 255, 220),
+    },
+    {
+        "name": "버튼 위치",
+        "rect": (480, 295, 660, 350),
+        "fill": (0, 230, 118, 85),
+        "border": (0, 230, 118, 230),
+    },
+]
+
+ZONE_LEGEND = [
+    {"name": "메인 이미지 영역", "color": "#FFC800"},
+    {"name": "로고 영역",        "color": "#00C8FF"},
+    {"name": "텍스트 영역",      "color": "#7850FF"},
+    {"name": "버튼 위치",        "color": "#00E676"},
+]
+
+
+def apply_layout_overlay(pil_image: Image.Image) -> Image.Image:
+    """배치 가이드 컬러 딤드 오버레이를 이미지 위에 합성."""
+    # 이미지를 686×386으로 리사이즈해서 좌표와 일치시킴
+    display = pil_image.resize((CANVAS_W, CANVAS_H), Image.Resampling.LANCZOS)
+    canvas  = display.convert("RGBA")
+    overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
+    draw    = ImageDraw.Draw(overlay)
+
+    try:
+        font = ImageFont.truetype(
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 13
+        )
+    except Exception:
+        font = ImageFont.load_default()
+
+    for zone in LAYOUT_ZONES:
+        x1, y1, x2, y2 = zone["rect"]
+
+        # 채우기
+        draw.rectangle([(x1, y1), (x2, y2)], fill=zone["fill"])
+
+        # 테두리 2px
+        for offset in range(2):
+            draw.rectangle(
+                [(x1 + offset, y1 + offset), (x2 - offset, y2 - offset)],
+                outline=zone["border"],
+            )
+
+        # 중앙 레이블
+        label = zone["name"]
+        cx = (x1 + x2) // 2
+        cy = (y1 + y2) // 2
+        bbox = draw.textbbox((0, 0), label, font=font)
+        tw   = bbox[2] - bbox[0]
+        th   = bbox[3] - bbox[1]
+        pad  = 4
+        draw.rectangle(
+            [(cx - tw // 2 - pad, cy - th // 2 - pad),
+             (cx + tw // 2 + pad, cy + th // 2 + pad)],
+            fill=(0, 0, 0, 160),
+        )
+        draw.text(
+            (cx - tw // 2, cy - th // 2),
+            label,
+            font=font,
+            fill=(255, 255, 255, 240),
+        )
+
+    result = Image.alpha_composite(canvas, overlay)
+    return result.convert("RGB")
 
 
 def _norm_filename(filename):
@@ -71,11 +172,11 @@ def analyze_video(uploaded_file):
         Path(tmp_path).unlink(missing_ok=True)
         return None
 
-    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-    fps = cap.get(cv2.CAP_PROP_FPS) or 0
+    width       = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height      = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps         = cap.get(cv2.CAP_PROP_FPS) or 0
     frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-    duration = frame_count / fps if fps > 0 else 0
+    duration    = frame_count / fps if fps > 0 else 0
     cap.release()
     Path(tmp_path).unlink(missing_ok=True)
 
@@ -83,36 +184,25 @@ def analyze_video(uploaded_file):
 
 
 def resolve_single_upload(uploaded, state_key):
-    """단일 업로더: 새 파일 선택 시 이전 파일을 교체."""
     fp_key = f"{state_key}_fp"
     if not uploaded:
         st.session_state.pop(fp_key, None)
         return None
-
-    fp = (uploaded.name, uploaded.size)
-    st.session_state[fp_key] = fp
+    st.session_state[fp_key] = (uploaded.name, uploaded.size)
     return uploaded
 
 
 def resolve_batch_upload(files):
-    """업로더에 표시된 전체 파일로 검수 (새 파일 추가·교체 모두 반영)."""
     if not files:
         st.session_state["batch_prev_fps"] = []
         return []
-
     file_list = list(files)
     st.session_state["batch_prev_fps"] = [(f.name, f.size) for f in file_list]
     return file_list
 
 
 def classify_batch_files(files):
-    """배너이미지(686×386)와 동영상(mp4/avi) 자동 분류."""
-    result = {
-        "배너이미지": None,
-        "video": None,
-        "warnings": [],
-        "unmatched": [],
-    }
+    result = {"배너이미지": None, "video": None, "warnings": [], "unmatched": []}
     video_candidates = []
     for f in files:
         ext = Path(f.name).suffix.lstrip(".").lower()
@@ -129,20 +219,19 @@ def classify_batch_files(files):
                 continue
 
             exp_w, exp_h = BANNER_SPECS["배너이미지"]["size"]
+            name = _norm_filename(f.name)
             if (w, h) == (exp_w, exp_h):
                 slot = "배너이미지"
+            elif (re.search(r"686\s*[x×]\s*386", name, re.IGNORECASE)
+                  or "배너" in name
+                  or "banner" in name.lower()):
+                slot = "배너이미지"
             else:
-                # 파일명으로 판별
-                name = _norm_filename(f.name)
-                if re.search(r"686\s*[x×]\s*386", name, re.IGNORECASE) or "배너" in name or "banner" in name.lower():
-                    slot = "배너이미지"
-                else:
-                    slot = None
+                slot = None
 
             if slot is None:
                 result["unmatched"].append((f.name, w, h))
                 continue
-
             if result[slot] is not None:
                 result["warnings"].append(
                     f"{slot} 파일이 여러 개입니다. `{result[slot].name}` → `{f.name}`(으)로 교체됩니다."
@@ -154,11 +243,10 @@ def classify_batch_files(files):
             )
 
     if video_candidates:
-        if len(video_candidates) > 1:
-            for extra in video_candidates[:-1]:
-                result["warnings"].append(
-                    f"영상 파일이 여러 개입니다. `{extra.name}` → `{video_candidates[-1].name}`(으)로 교체됩니다."
-                )
+        for extra in video_candidates[:-1]:
+            result["warnings"].append(
+                f"영상 파일이 여러 개입니다. `{extra.name}` → `{video_candidates[-1].name}`(으)로 교체됩니다."
+            )
         result["video"] = video_candidates[-1]
 
     return result
@@ -181,22 +269,14 @@ h1, h2, h3, h4 { color: #FFFFFF !important; }
     color: #FFFFFF !important; font-weight: 500 !important;
 }
 
-/* 탭 스타일 */
-.stTabs [data-baseweb="tab-border"] {
-    background-color: #FFFFFF !important;
-}
-.stTabs [data-baseweb="tab-highlight"] {
-    background-color: #FFFFFF !important;
-}
+/* 탭 */
+.stTabs [data-baseweb="tab-border"]    { background-color: #FFFFFF !important; }
+.stTabs [data-baseweb="tab-highlight"] { background-color: #FFFFFF !important; }
 button[data-baseweb="tab"] {
-    color: #AAAAAA !important;
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    border-bottom-color: #FFFFFF !important;
+    color: #AAAAAA !important; font-size: 1rem !important; font-weight: 600 !important;
 }
 button[data-baseweb="tab"][aria-selected="true"] {
-    color: #FFFFFF !important;
-    border-bottom: 2px solid #FFFFFF !important;
+    color: #FFFFFF !important; border-bottom: 2px solid #FFFFFF !important;
 }
 
 /* 검수 결과 */
@@ -206,65 +286,56 @@ button[data-baseweb="tab"][aria-selected="true"] {
 
 /* 가이드 컨테이너 */
 .guide-container {
-    background-color: #1E1E1E;
-    padding: 15px 25px;
-    border-radius: 12px;
-    border: 1px solid #333333;
-    margin-bottom: 25px;
+    background-color: #1E1E1E; padding: 15px 25px;
+    border-radius: 12px; border: 1px solid #333333; margin-bottom: 25px;
 }
 .guide-row {
     display: flex; flex-wrap: wrap;
-    align-items: center; gap: 20px;
-    margin-bottom: 8px;
+    align-items: center; gap: 20px; margin-bottom: 8px;
 }
-.guide-item {
-    display: flex; align-items: center;
-    font-size: 0.85rem; color: #DDDDDD;
-}
-.warning-text {
-    font-size: 0.85rem; font-weight: bold;
-    display: flex; align-items: center; gap: 5px;
-}
+.guide-item   { display: flex; align-items: center; font-size: 0.85rem; color: #DDDDDD; }
+.warning-text { font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; gap: 5px; }
 
-/* 규격 뱃지 */
-.spec-badge {
-    display: inline-block;
-    background: #2A2A2A;
-    border: 1px solid #444;
-    border-radius: 8px;
-    padding: 6px 14px;
-    font-size: 0.82rem;
-    color: #BBBBBB;
-    margin-bottom: 16px;
+/* 배치 가이드 범례 */
+.layout-legend {
+    display: flex; flex-wrap: wrap; gap: 14px;
+    background: #1A1A1A; border: 1px solid #2E2E2E;
+    border-radius: 10px; padding: 12px 18px; margin: 10px 0 16px 0;
 }
+.legend-item  { display: flex; align-items: center; gap: 7px; font-size: 0.82rem; color: #DDDDDD; }
+.legend-dot   { width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0; }
 
 /* 사이드바 */
 [data-testid="stSidebar"] {
-    background-color: #111111 !important;
-    border-right: 1px solid #333333;
+    background-color: #111111 !important; border-right: 1px solid #333333;
 }
 [data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
-[data-testid="stSidebar"] [data-testid="stRadio"] label p,
-[data-testid="stSidebar"] .stRadio label { color: #DDDDDD !important; }
+[data-testid="stSidebar"] [data-testid="stRadio"] label p { color: #DDDDDD !important; }
 [data-testid="stSidebar"] h3 { color: #FFFFFF !important; margin-bottom: 20px !important; }
 [data-testid="stSidebar"] li { color: #DDDDDD !important; margin-bottom: 8px !important; }
-[data-testid="stSidebar"] .stMarkdown { margin-bottom: 0px !important; }
 
 #MainMenu { visibility: hidden; }
-header { visibility: hidden; }
-footer { visibility: hidden; }
-.stImage { display: flex; justify-content: center; }
+header    { visibility: hidden; }
+footer    { visibility: hidden; }
+.stImage  { display: flex; justify-content: center; }
 </style>
 """, unsafe_allow_html=True)
 
 
-# ── 메인 UI ────────────────────────────────────────────────────
-st.title("Check Mate : 포커스뷰")
-st.caption("포커스뷰 광고 배너 및 동영상 소재 품질 및 규격 사전 검증 프로그램")
+# ── 범례 HTML ──────────────────────────────────────────────────
+def legend_html():
+    items = "".join(
+        f'<div class="legend-item">'
+        f'<div class="legend-dot" style="background:{z["color"]};"></div>'
+        f'{z["name"]}'
+        f'</div>'
+        for z in ZONE_LEGEND
+    )
+    return f'<div class="layout-legend">{items}</div>'
 
 
-def render_banner_results(uploaded):
-    """배너이미지 검수 결과·프리뷰 (업로더 제외)."""
+# ── 배너 검수 렌더 ──────────────────────────────────────────────
+def render_banner_results(uploaded, toggle_key: str):
     exp_w, exp_h = BANNER_SPECS["배너이미지"]["size"]
 
     uploaded.seek(0)
@@ -275,40 +346,31 @@ def render_banner_results(uploaded):
 
     image = Image.open(uploaded).convert("RGB")
     actual_w, actual_h = image.size
-
     is_dim_valid = (actual_w, actual_h) == (exp_w, exp_h)
 
     with st.spinner("이미지 품질을 분석 중입니다..."):
         is_blurry, is_pixelated, quality_score = evaluate_quality(image)
 
+    # 검수 결과
     col1, col2 = st.columns(2)
-
     with col1:
-        css = "check-pass" if is_dim_valid else "check-fail"
+        css   = "check-pass" if is_dim_valid else "check-fail"
         label = "✅ 규격 통과" if is_dim_valid else "❌ 규격 오류"
         st.markdown(f'<div class="{css}">{label}</div>', unsafe_allow_html=True)
         st.markdown(
-            f'<div class="status-text">업로드: {actual_w}×{actual_h}px'
-            f'  |  권장: {exp_w}×{exp_h}px</div>',
+            f'<div class="status-text">업로드: {actual_w}×{actual_h}px  |  권장: {exp_w}×{exp_h}px</div>',
             unsafe_allow_html=True,
         )
-
     with col2:
-        is_quality_pass = quality_score >= QUALITY_THRESHOLD
-        if is_quality_pass:
-            st.markdown('<div class="check-pass">✅ 화질 양호</div>', unsafe_allow_html=True)
-            st.markdown(
-                f'<div class="status-text">품질 점수: {quality_score:.0f}점'
-                f'  |  기준: {QUALITY_THRESHOLD}점 이상</div>',
-                unsafe_allow_html=True,
-            )
-        else:
-            st.markdown('<div class="check-fail">⚠️ 화질 저하</div>', unsafe_allow_html=True)
-            st.markdown(
-                f'<div class="status-text">품질 점수: {quality_score:.0f}점'
-                f'  |  기준: {QUALITY_THRESHOLD}점 이상</div>',
-                unsafe_allow_html=True,
-            )
+        q_pass  = quality_score >= QUALITY_THRESHOLD
+        q_css   = "check-pass" if q_pass else "check-fail"
+        q_label = "✅ 화질 양호" if q_pass else "⚠️ 화질 저하"
+        st.markdown(f'<div class="{q_css}">{q_label}</div>', unsafe_allow_html=True)
+        st.markdown(
+            f'<div class="status-text">품질 점수: {quality_score:.0f}점  |  기준: {QUALITY_THRESHOLD}점 이상</div>',
+            unsafe_allow_html=True,
+        )
+        if not q_pass:
             st.warning(
                 f"화질 점수가 기준({QUALITY_THRESHOLD}점)에 미달되었습니다.\n\n"
                 "고화질 원본 이미지로 교체해 주시고,\n"
@@ -316,15 +378,31 @@ def render_banner_results(uploaded):
             )
 
     st.divider()
-    st.image(image, caption=f"배너이미지 프리뷰 — {actual_w}×{actual_h}px", width=actual_w)
+
+    # 배치 가이드 토글
+    show_guide = st.toggle(
+        "🗺️ 배치 가이드 보기",
+        key=toggle_key,
+        help="활성화하면 주요 이미지·로고·텍스트·버튼 배치 기준 영역이 컬러 딤드로 표시됩니다.",
+    )
+
+    if show_guide:
+        st.markdown(legend_html(), unsafe_allow_html=True)
+        preview = apply_layout_overlay(image)
+        caption = "배치 가이드 오버레이 — 각 컬러 영역 안에 해당 요소가 위치하는지 확인하세요"
+    else:
+        preview = image
+        caption = f"배너이미지 프리뷰 — {actual_w}×{actual_h}px"
+
+    st.image(preview, caption=caption, use_column_width=False, width=min(actual_w, CANVAS_W))
 
 
+# ── 동영상 검수 렌더 ────────────────────────────────────────────
 def render_video_results(uploaded):
-    """동영상 검수 결과·프리뷰 (업로더·가이드 제외)."""
-    min_w, min_h = VIDEO_SPECS["min_size"]
-    target_ratio = VIDEO_SPECS["aspect_ratio"]
-    max_mb = VIDEO_SPECS["max_mb"]
-    max_duration = VIDEO_SPECS["max_duration_sec"]
+    min_w, min_h    = VIDEO_SPECS["min_size"]
+    target_ratio    = VIDEO_SPECS["aspect_ratio"]
+    max_mb          = VIDEO_SPECS["max_mb"]
+    max_duration    = VIDEO_SPECS["max_duration_sec"]
     allowed_formats = list(VIDEO_SPECS["formats"])
 
     uploaded.seek(0)
@@ -345,46 +423,42 @@ def render_video_results(uploaded):
     actual_w, actual_h = meta["width"], meta["height"]
     duration = meta["duration"]
 
-    is_ratio_valid = abs(actual_w / actual_h - target_ratio) < 0.01 if actual_h > 0 else False
+    is_ratio_valid    = abs(actual_w / actual_h - target_ratio) < 0.01 if actual_h > 0 else False
     is_min_size_valid = actual_w >= min_w and actual_h >= min_h
-    is_dim_valid = is_ratio_valid and is_min_size_valid
-    is_size_valid = file_size_mb <= max_mb
-    is_format_valid = file_ext in allowed_formats
+    is_dim_valid      = is_ratio_valid and is_min_size_valid
+    is_size_valid     = file_size_mb <= max_mb
+    is_format_valid   = file_ext in allowed_formats
     is_duration_valid = duration <= max_duration
 
     col1, col2, col3, col4 = st.columns(4)
-
     with col1:
-        css = "check-pass" if is_dim_valid else "check-fail"
+        css   = "check-pass" if is_dim_valid else "check-fail"
         label = "✅ 해상도 통과" if is_dim_valid else "❌ 해상도 오류"
-        st.markdown(f'<div class="{css}">{label}</div>', unsafe_allow_html=True)
         ratio_note = "16:9" if is_ratio_valid else f"{actual_w}:{actual_h}"
+        st.markdown(f'<div class="{css}">{label}</div>', unsafe_allow_html=True)
         st.markdown(
             f'<div class="status-text">업로드: {actual_w}×{actual_h}px ({ratio_note})'
             f'  |  최소: {min_w}×{min_h}px (16:9)</div>',
             unsafe_allow_html=True,
         )
-
     with col2:
-        css = "check-pass" if is_size_valid else "check-fail"
+        css   = "check-pass" if is_size_valid else "check-fail"
         label = "✅ 용량 적합" if is_size_valid else "❌ 용량 초과"
         st.markdown(f'<div class="{css}">{label}</div>', unsafe_allow_html=True)
         st.markdown(
             f'<div class="status-text">{file_size_mb:.1f} MB  |  제한: {max_mb} MB</div>',
             unsafe_allow_html=True,
         )
-
     with col3:
-        css = "check-pass" if is_format_valid else "check-fail"
+        css   = "check-pass" if is_format_valid else "check-fail"
         label = "✅ 포맷 적합" if is_format_valid else "❌ 포맷 오류"
         st.markdown(f'<div class="{css}">{label}</div>', unsafe_allow_html=True)
         st.markdown(
             f'<div class="status-text">업로드: {file_ext.upper()}  |  허용: MP4, AVI</div>',
             unsafe_allow_html=True,
         )
-
     with col4:
-        css = "check-pass" if is_duration_valid else "check-fail"
+        css   = "check-pass" if is_duration_valid else "check-fail"
         label = "✅ 길이 적합" if is_duration_valid else "⚠️ 길이 초과"
         st.markdown(f'<div class="{css}">{label}</div>', unsafe_allow_html=True)
         st.markdown(
@@ -399,7 +473,11 @@ def render_video_results(uploaded):
     st.video(uploaded)
 
 
-# ── 일괄 업로드 ───────────────────────────────────────────────
+# ── 메인 UI ────────────────────────────────────────────────────
+st.title("Check Mate : 포커스뷰")
+st.caption("포커스뷰 광고 배너 및 동영상 소재 품질 및 규격 사전 검증 프로그램")
+
+# ── 일괄 검수 ─────────────────────────────────────────────────
 st.subheader("일괄 검수")
 st.caption(
     "배너이미지 **686×386** px 또는 파일명에 **배너·banner**, 동영상 **MP4/AVI** 를 한 번에 올리면 "
@@ -412,7 +490,7 @@ batch_files = st.file_uploader(
 )
 if batch_files:
     batch_files = resolve_batch_upload(batch_files)
-    assigned = classify_batch_files(batch_files)
+    assigned    = classify_batch_files(batch_files)
     for w in assigned["warnings"]:
         st.warning(w)
     for name, w, h in assigned["unmatched"]:
@@ -425,12 +503,9 @@ if batch_files:
     with st.expander("🖼️ 배너이미지", expanded=True):
         if assigned["배너이미지"]:
             st.caption(assigned["배너이미지"].name)
-            render_banner_results(assigned["배너이미지"])
+            render_banner_results(assigned["배너이미지"], toggle_key="guide_toggle_batch")
         else:
-            st.info(
-                "배너이미지 파일이 없습니다. "
-                "파일명(배너·banner) 또는 686×386 px 이미지를 업로드하세요."
-            )
+            st.info("배너이미지 파일이 없습니다. 파일명(배너·banner) 또는 686×386 px 이미지를 업로드하세요.")
 
     with st.expander("🎬 동영상", expanded=True):
         if assigned["video"]:
@@ -443,23 +518,18 @@ st.divider()
 
 # ── 개별 검수 (탭) ─────────────────────────────────────────────
 st.subheader("개별 검수")
-
 tab1, tab2 = st.tabs(["🖼️ 배너이미지 검수", "🎬 동영상 검수"])
 
 with tab1:
-    guide_html = """
+    st.markdown("""
     <div class="guide-container">
       <div class="guide-row">
         <div class="guide-item">📐 규격: (가로) 686 × (세로) 386 px</div>
       </div>
     </div>
-    """
-    st.markdown(guide_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-    uploaded_banner = st.file_uploader(
-        "배너이미지 시안을 업로드하세요",
-        key="uploader_banner",
-    )
+    uploaded_banner = st.file_uploader("배너이미지 시안을 업로드하세요", key="uploader_banner")
     uploaded_banner = resolve_single_upload(uploaded_banner, "uploader_banner")
 
     if uploaded_banner:
@@ -467,10 +537,10 @@ with tab1:
         if file_ext not in ALLOWED_IMAGE_EXT:
             st.warning("이미지 파일로 업로드 해주세요.")
         else:
-            render_banner_results(uploaded_banner)
+            render_banner_results(uploaded_banner, toggle_key="guide_toggle_tab")
 
 with tab2:
-    guide_html = """
+    st.markdown("""
     <div class="guide-container">
       <div class="guide-row">
         <div class="guide-item">📐 비율: 16:9 유지  |  최소 686 × 386 px 이상</div>
@@ -479,13 +549,9 @@ with tab2:
         <div class="guide-item">📁 포맷: MP4, AVI</div>
       </div>
     </div>
-    """
-    st.markdown(guide_html, unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-    uploaded_video = st.file_uploader(
-        "동영상 시안을 업로드하세요",
-        key="uploader_video",
-    )
+    uploaded_video = st.file_uploader("동영상 시안을 업로드하세요", key="uploader_video")
     uploaded_video = resolve_single_upload(uploaded_video, "uploader_video")
 
     if uploaded_video:
