@@ -306,7 +306,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] li,
 [data-testid="stSidebar"] span {
-    color: #CCCCCC !important;
+    color: #f2f2f2 !important;
 }
 
 /* LNB 커스텀 컴포넌트 */
