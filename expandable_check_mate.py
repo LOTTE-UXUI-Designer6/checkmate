@@ -1,3 +1,5 @@
+import re
+import unicodedata
 import streamlit as st
 import tempfile
 from pathlib import Path
@@ -72,15 +74,33 @@ ALLOWED_VIDEO_EXT = set(VIDEO_SPECS["formats"])
 QUALITY_THRESHOLD = 60
 
 
+def _norm_filename(filename):
+    return unicodedata.normalize("NFC", Path(filename).name)
+
+
+def slot_from_filename(filename):
+    """파일명 키워드·규격 표기로 슬롯 판별 (실제 해상도와 무관)."""
+    name = _norm_filename(filename)
+
+    if "확장형" in name or "확장후" in name:
+        return "확장이미지"
+    if "대표이미지" in name or "확장전" in name:
+        return "대표이미지"
+    if re.search(r"686\s*[x×]\s*380", name, re.IGNORECASE):
+        return "확장이미지"
+    if re.search(r"686\s*[x×]\s*200", name, re.IGNORECASE):
+        return "대표이미지"
+    return None
+
+
 def match_image_slot(filename, width, height):
-    """규격 또는 파일명으로 대표/확장 슬롯 판별."""
+    """파일명 우선, 없으면 실제 해상도로 대표/확장 슬롯 판별."""
+    by_name = slot_from_filename(filename)
+    if by_name:
+        return by_name
+
     rep_size = BANNER_SPECS["대표이미지"]["size"]
     exp_size = BANNER_SPECS["확장이미지"]["size"]
-
-    if "확장형" in filename or "확장후" in filename:
-        return "확장이미지"
-    if "대표이미지" in filename or "확장전" in filename:
-        return "대표이미지"
     if (width, height) == exp_size:
         return "확장이미지"
     if (width, height) == rep_size:
@@ -161,23 +181,12 @@ def classify_batch_files(files):
 
 
 def resolve_batch_upload(files):
-    """기존 파일이 있을 때 새로 올리면 새 파일만 사용(바꿔치기)."""
+    """업로더에 표시된 전체 파일로 검수 (새 파일 추가·교체 모두 반영)."""
     if not files:
         st.session_state["batch_prev_fps"] = []
         return []
 
     file_list = list(files)
-    current_fps = [(f.name, f.size) for f in file_list]
-    prev_fps = st.session_state.get("batch_prev_fps", [])
-
-    if prev_fps:
-        new_fps = [fp for fp in current_fps if fp not in prev_fps]
-        if new_fps:
-            if not set(current_fps) & set(prev_fps):
-                file_list = list(files)
-            else:
-                file_list = [f for f in file_list if (f.name, f.size) in new_fps]
-
     st.session_state["batch_prev_fps"] = [(f.name, f.size) for f in file_list]
     return file_list
 
@@ -581,7 +590,7 @@ if batch_files:
         st.warning(w)
     for name, w, h in assigned["unmatched"]:
         st.info(
-            f"`{name}` ({w}×{h}px) 은(는) 대표·확장 규격과 달라 일괄 검수에 포함되지 않았습니다. "
+            f"`{name}` ({w}×{h}px) 은(는) 파일명 키워드·규격으로 분류되지 않아 일괄 검수에서 제외되었습니다. "
             "아래 탭에서 개별 업로드하세요."
         )
 
@@ -591,14 +600,20 @@ if batch_files:
             st.caption(assigned["대표이미지"].name)
             render_image_results("대표이미지", assigned["대표이미지"])
         else:
-            st.info("686×200 px 규격 이미지가 감지되지 않았습니다.")
+            st.info(
+                "대표이미지 파일이 없습니다. "
+                "파일명(대표이미지·확장전) 또는 686×200 px 이미지를 업로드하세요."
+            )
 
     with st.expander("📐 확장이미지", expanded=True):
         if assigned["확장이미지"]:
             st.caption(assigned["확장이미지"].name)
             render_image_results("확장이미지", assigned["확장이미지"])
         else:
-            st.info("686×380 px 규격 이미지가 감지되지 않았습니다.")
+            st.info(
+                "확장이미지 파일이 없습니다. "
+                "파일명(확장형·확장후) 또는 686×380 px 이미지를 업로드하세요."
+            )
 
     with st.expander("🎬 동영상", expanded=True):
         if assigned["video"]:
