@@ -307,13 +307,13 @@ button[data-baseweb="tab"][aria-selected="true"] {
     justify-content: center; font-size: 18px; flex-shrink: 0;
 }
 .lnb-logo-text  { font-size: 0.95rem; font-weight: 700; color: #FFFFFF !important; letter-spacing: -0.3px; line-height: 1.2; }
-.lnb-logo-sub   { font-size: 0.7rem; color: #666666 !important; font-weight: 400; margin-top: 2px; }
+.lnb-logo-sub   { font-size: 0.8rem; color: #eeeeee !important; font-weight: 400; margin-top: 2px; }
 
 /* 섹션 블록 */
 .lnb-section { margin-bottom: 24px; }
 .lnb-section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 .lnb-section-icon   { font-size: 14px; opacity: 0.9; }
-.lnb-section-title  { font-size: 0.72rem !important; font-weight: 700 !important; color: #888888 !important; letter-spacing: 0.08em; text-transform: uppercase; }
+.lnb-section-title  { font-size: 0.85rem !important; font-weight: 700 !important; color: #888888 !important; letter-spacing: -0.02em; text-transform: uppercase; }
 
 /* 규격 카드 */
 .lnb-card {
