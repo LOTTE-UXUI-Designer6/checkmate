@@ -652,37 +652,6 @@ with st.sidebar:
 
       <hr class="lnb-divider">
 
-      <!-- 일괄 업로드 안내 -->
-      <div class="lnb-section">
-        <div class="lnb-section-header">
-          <span class="lnb-section-icon">📋</span>
-          <span class="lnb-section-title">일괄 검수 자동 분류 기준</span>
-        </div>
-        <ul class="lnb-checklist">
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span>이미지 크기가 <strong style="color:#EEE;">686×386 px</strong>이면 배너로 자동 분류</span>
-          </li>
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span>파일명에 <strong style="color:#EEE;">배너 · banner</strong> 포함 시 배너로 분류</span>
-          </li>
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span>파일명에 <strong style="color:#EEE;">686x386</strong> 패턴 포함 시 배너로 분류</span>
-          </li>
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span><strong style="color:#EEE;">MP4 · AVI</strong> 확장자는 동영상으로 자동 분류</span>
-          </li>
-          <li>
-            <div class="lnb-check-dot"></div>
-            <span>분류 불가 파일은 개별 검수 탭에서 직접 업로드</span>
-          </li>
-        </ul>
-      </div>
-
-      <hr class="lnb-divider">
 
       <!-- 화질 점수 안내 -->
       <div class="lnb-section">
