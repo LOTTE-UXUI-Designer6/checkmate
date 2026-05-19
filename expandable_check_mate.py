@@ -45,9 +45,9 @@ BANNER_SPECS = {
     "대표이미지": {
         "size": (686, 200),
         "max_kb": 150,
-        "crop_right": 108,          # 우측 크롭 영역 (px)
+        "crop_right": 108,
         "crop_left": 0,
-        "close_btn": False,         # 닫기버튼 영역 없음
+        "close_btn": False,
         "description": "686 × 200 px  |  150 KB 이하  |  우측 크롭 108 px",
     },
     "확장이미지": {
@@ -55,8 +55,8 @@ BANNER_SPECS = {
         "max_kb": 150,
         "crop_right": 0,
         "crop_left": 0,
-        "close_btn": True,          # 우상단 닫기버튼 영역 표시
-        "close_btn_size": CLOSE_BTN_MARGIN + CLOSE_BTN_SIZE,  # 닫기버튼 영역 (px)
+        "close_btn": True,
+        "close_btn_size": CLOSE_BTN_MARGIN + CLOSE_BTN_SIZE,
         "description": "686 × 380 px  |  150 KB 이하  |  우상단 닫기버튼 영역 주의",
     },
 }
@@ -79,9 +79,7 @@ def _norm_filename(filename):
 
 
 def slot_from_filename(filename):
-    """파일명 키워드·규격 표기로 슬롯 판별 (실제 해상도와 무관)."""
     name = _norm_filename(filename)
-
     if "확장형" in name or "확장후" in name:
         return "확장이미지"
     if "대표이미지" in name or "확장전" in name:
@@ -94,11 +92,9 @@ def slot_from_filename(filename):
 
 
 def match_image_slot(filename, width, height):
-    """파일명 우선, 없으면 실제 해상도로 대표/확장 슬롯 판별."""
     by_name = slot_from_filename(filename)
     if by_name:
         return by_name
-
     rep_size = BANNER_SPECS["대표이미지"]["size"]
     exp_size = BANNER_SPECS["확장이미지"]["size"]
     if (width, height) == exp_size:
@@ -131,7 +127,6 @@ def analyze_video(uploaded_file):
 
 
 def classify_batch_files(files):
-    """대표/확장: 규격(686×200, 686×380) 또는 파일명으로 분류. 영상: mp4/avi."""
     result = {
         "대표이미지": None,
         "확장이미지": None,
@@ -181,23 +176,19 @@ def classify_batch_files(files):
 
 
 def resolve_batch_upload(files):
-    """업로더에 표시된 전체 파일로 검수 (새 파일 추가·교체 모두 반영)."""
     if not files:
         st.session_state["batch_prev_fps"] = []
         return []
-
     file_list = list(files)
     st.session_state["batch_prev_fps"] = [(f.name, f.size) for f in file_list]
     return file_list
 
 
 def resolve_single_upload(uploaded, state_key):
-    """단일 업로더: 새 파일 선택 시 이전 파일을 교체."""
     fp_key = f"{state_key}_fp"
     if not uploaded:
         st.session_state.pop(fp_key, None)
         return None
-
     fp = (uploaded.name, uploaded.size)
     st.session_state[fp_key] = fp
     return uploaded
@@ -211,7 +202,7 @@ def apply_guide_overlay(pil_image, banner_type):
     overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
 
-    purple = (160,  80, 255,  90)   # 크롭·닫기버튼 영역 (보라톤)
+    purple = (160, 80, 255, 90)
 
     if banner_type == "대표이미지":
         crop_r = cfg["crop_right"]
@@ -235,6 +226,8 @@ def apply_guide_overlay(pil_image, banner_type):
 # ── CSS ────────────────────────────────────────────────────────
 st.markdown("""
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap');
+
 [data-testid="stSidebarCollapseButton"],
 [data-testid="collapsedControl"] { display: none !important; }
 
@@ -250,21 +243,14 @@ h1, h2, h3, h4 { color: #FFFFFF !important; }
 }
 
 /* 탭 스타일 */
-.stTabs [data-baseweb="tab-border"] {
-    background-color: #FFFFFF !important;
-}
-.stTabs [data-baseweb="tab-highlight"] {
-    background-color: #FFFFFF !important;
-}
+.stTabs [data-baseweb="tab-border"]    { background-color: #FFFFFF !important; }
+.stTabs [data-baseweb="tab-highlight"] { background-color: #FFFFFF !important; }
 button[data-baseweb="tab"] {
-    color: #AAAAAA !important;
-    font-size: 1rem !important;
-    font-weight: 600 !important;
-    border-bottom-color: #FFFFFF !important;
+    color: #AAAAAA !important; font-size: 1rem !important;
+    font-weight: 600 !important; border-bottom-color: #FFFFFF !important;
 }
 button[data-baseweb="tab"][aria-selected="true"] {
-    color: #FFFFFF !important;
-    border-bottom: 2px solid #FFFFFF !important;
+    color: #FFFFFF !important; border-bottom: 2px solid #FFFFFF !important;
 }
 
 /* 검수 결과 */
@@ -274,60 +260,381 @@ button[data-baseweb="tab"][aria-selected="true"] {
 
 /* 가이드 컨테이너 */
 .guide-container {
-    background-color: #1E1E1E;
-    padding: 15px 25px;
-    border-radius: 12px;
-    border: 1px solid #333333;
-    margin-bottom: 25px;
+    background-color: #1E1E1E; padding: 15px 25px;
+    border-radius: 12px; border: 1px solid #333333; margin-bottom: 25px;
 }
 .guide-row {
     display: flex; flex-wrap: wrap;
-    align-items: center; gap: 20px;
-    margin-bottom: 8px;
+    align-items: center; gap: 20px; margin-bottom: 8px;
 }
-.guide-item {
-    display: flex; align-items: center;
-    font-size: 0.85rem; color: #DDDDDD;
-}
-.color-box {
-    width: 16px; height: 16px;
-    border-radius: 4px; margin-right: 8px; flex-shrink: 0;
-}
-.warning-text {
-    font-size: 0.85rem; font-weight: bold;
-    display: flex; align-items: center; gap: 5px;
-}
+.guide-item   { display: flex; align-items: center; font-size: 0.85rem; color: #DDDDDD; }
+.color-box    { width: 16px; height: 16px; border-radius: 4px; margin-right: 8px; flex-shrink: 0; }
+.warning-text { font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; gap: 5px; }
 
 /* 규격 뱃지 */
 .spec-badge {
-    display: inline-block;
-    background: #2A2A2A;
-    border: 1px solid #444;
-    border-radius: 8px;
-    padding: 6px 14px;
-    font-size: 0.82rem;
-    color: #BBBBBB;
-    margin-bottom: 16px;
+    display: inline-block; background: #2A2A2A; border: 1px solid #444;
+    border-radius: 8px; padding: 6px 14px; font-size: 0.82rem;
+    color: #BBBBBB; margin-bottom: 16px;
 }
 
-/* 사이드바 */
+/* ── 사이드바 전체 ─────────────────────────────────────────── */
 [data-testid="stSidebar"] {
-    background-color: #111111 !important;
-    border-right: 1px solid #333333;
+    background-color: #0D0D0D !important;
+    border-right: 1px solid #2A2A2A !important;
+    min-width: 300px !important;
+    max-width: 300px !important;
 }
-[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p,
-[data-testid="stSidebar"] [data-testid="stRadio"] label p,
-[data-testid="stSidebar"] .stRadio label { color: #DDDDDD !important; }
-[data-testid="stSidebar"] h3 { color: #FFFFFF !important; margin-bottom: 20px !important; }
-[data-testid="stSidebar"] li { color: #DDDDDD !important; margin-bottom: 8px !important; }
-[data-testid="stSidebar"] .stMarkdown { margin-bottom: 0px !important; }
+[data-testid="stSidebar"] > div:first-child { padding: 0 !important; }
+[data-testid="stSidebar"] * { font-family: 'Noto Sans KR', sans-serif !important; }
+[data-testid="stSidebar"] p,
+[data-testid="stSidebar"] li,
+[data-testid="stSidebar"] span { color: #CCCCCC !important; }
+
+/* LNB 커스텀 컴포넌트 */
+.lnb-wrap { padding: 28px 20px 40px 20px; font-family: 'Noto Sans KR', sans-serif; }
+
+/* 로고 영역 */
+.lnb-logo {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 32px; padding-bottom: 20px;
+    border-bottom: 1px solid #222222;
+}
+.lnb-logo-icon {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #A050FF 0%, #00B0FF 100%);
+    border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; font-size: 18px; flex-shrink: 0;
+}
+.lnb-logo-text  { font-size: 0.95rem; font-weight: 700; color: #FFFFFF !important; letter-spacing: -0.3px; line-height: 1.2; }
+.lnb-logo-sub   { font-size: 0.7rem; color: #666666 !important; font-weight: 400; margin-top: 2px; }
+
+/* 섹션 블록 */
+.lnb-section { margin-bottom: 24px; }
+.lnb-section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.lnb-section-icon   { font-size: 14px; opacity: 0.9; }
+.lnb-section-title  { font-size: 0.72rem !important; font-weight: 700 !important; color: #888888 !important; letter-spacing: 0.08em; text-transform: uppercase; }
+
+/* 규격 카드 */
+.lnb-card {
+    background: #161616; border: 1px solid #252525;
+    border-radius: 10px; padding: 14px 16px; margin-bottom: 8px;
+}
+.lnb-card-title {
+    font-size: 0.78rem !important; font-weight: 600 !important;
+    color: #EEEEEE !important; margin-bottom: 10px;
+    display: flex; align-items: center; gap: 6px;
+}
+.lnb-card-badge {
+    display: inline-block; background: #1E1E1E; border: 1px solid #333;
+    border-radius: 4px; padding: 1px 7px;
+    font-size: 0.68rem !important; color: #888888 !important;
+    font-weight: 500 !important; vertical-align: middle;
+}
+
+/* 규격 행 */
+.lnb-spec-row {
+    display: flex; align-items: flex-start; gap: 10px;
+    padding: 6px 0; border-bottom: 1px solid #1E1E1E;
+}
+.lnb-spec-row:last-child { border-bottom: none; padding-bottom: 0; }
+.lnb-spec-label {
+    font-size: 0.73rem !important; color: #777777 !important;
+    font-weight: 500 !important; min-width: 52px; flex-shrink: 0; padding-top: 1px;
+}
+.lnb-spec-value { font-size: 0.73rem !important; color: #CCCCCC !important; font-weight: 400 !important; line-height: 1.5; }
+.lnb-spec-value strong { color: #FFFFFF !important; font-weight: 600 !important; }
+.lnb-spec-value .accent { color: #00E676 !important; font-weight: 600 !important; }
+.lnb-spec-value .warn   { color: #FFB300 !important; font-weight: 600 !important; }
+.lnb-spec-value .danger { color: #FF5252 !important; font-weight: 600 !important; }
+.lnb-spec-value .purple { color: #BB88FF !important; font-weight: 600 !important; }
+
+/* 구분선 */
+.lnb-divider { border: none; border-top: 1px solid #1E1E1E; margin: 20px 0; }
+
+/* 체크리스트 */
+.lnb-checklist { list-style: none; padding: 0; margin: 0; }
+.lnb-checklist li {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 5px 0; font-size: 0.73rem !important;
+    color: #AAAAAA !important; line-height: 1.5;
+    border-bottom: 1px solid #1A1A1A;
+}
+.lnb-checklist li:last-child { border-bottom: none; }
+.lnb-check-dot { width: 5px; height: 5px; background: #444; border-radius: 50%; margin-top: 6px; flex-shrink: 0; }
+
+/* 팁·경고 박스 */
+.lnb-tip {
+    background: #0F1F17; border: 1px solid #1A3A28;
+    border-left: 3px solid #00E676;
+    border-radius: 8px; padding: 11px 14px; margin-top: 8px;
+}
+.lnb-tip p { font-size: 0.72rem !important; color: #88BB99 !important; margin: 0; line-height: 1.6; }
+.lnb-tip-label { font-size: 0.68rem !important; font-weight: 700 !important; color: #00E676 !important; letter-spacing: 0.05em; margin-bottom: 5px !important; }
+
+.lnb-warn {
+    background: #1F1500; border: 1px solid #3A2800;
+    border-left: 3px solid #FFB300;
+    border-radius: 8px; padding: 11px 14px; margin-top: 8px;
+}
+.lnb-warn p { font-size: 0.72rem !important; color: #BBAA77 !important; margin: 0; line-height: 1.6; }
+.lnb-warn-label { font-size: 0.68rem !important; font-weight: 700 !important; color: #FFB300 !important; letter-spacing: 0.05em; margin-bottom: 5px !important; }
+
+.lnb-danger {
+    background: #1F0A0A; border: 1px solid #3A1010;
+    border-left: 3px solid #FF5252;
+    border-radius: 8px; padding: 11px 14px; margin-top: 8px;
+}
+.lnb-danger p { font-size: 0.72rem !important; color: #CC8888 !important; margin: 0; line-height: 1.6; }
+.lnb-danger-label { font-size: 0.68rem !important; font-weight: 700 !important; color: #FF5252 !important; letter-spacing: 0.05em; margin-bottom: 5px !important; }
+
+/* 오버레이 범례 */
+.lnb-overlay-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 5px 0; border-bottom: 1px solid #1A1A1A;
+    font-size: 0.73rem !important; color: #AAAAAA !important; line-height: 1.5;
+}
+.lnb-overlay-item:last-child { border-bottom: none; }
+.lnb-overlay-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; margin-top: 3px; }
+
+/* 푸터 */
+.lnb-footer {
+    margin-top: 32px; padding-top: 16px;
+    border-top: 1px solid #1E1E1E;
+    font-size: 0.68rem !important; color: #444444 !important;
+    text-align: center; line-height: 1.6;
+}
 
 #MainMenu { visibility: hidden; }
-header { visibility: hidden; }
-footer { visibility: hidden; }
-.stImage { display: flex; justify-content: center; }
+header    { visibility: hidden; }
+footer    { visibility: hidden; }
+.stImage  { display: flex; justify-content: center; }
 </style>
 """, unsafe_allow_html=True)
+
+
+# ── LNB 사이드바 ───────────────────────────────────────────────
+with st.sidebar:
+    st.markdown("""
+    <div class="lnb-wrap">
+
+      <!-- 로고 -->
+      <div class="lnb-logo">
+        <div class="lnb-logo-icon">✅</div>
+        <div>
+          <div class="lnb-logo-text">Check Mate</div>
+          <div class="lnb-logo-sub">익스팬더블 배너 검수 가이드</div>
+        </div>
+      </div>
+
+      <!-- 대표이미지 규격 -->
+      <div class="lnb-section">
+        <div class="lnb-section-header">
+          <span class="lnb-section-icon">📌</span>
+          <span class="lnb-section-title">대표이미지 규격</span>
+        </div>
+        <div class="lnb-card">
+          <div class="lnb-card-title">
+            대표이미지 (확장 전)
+            <span class="lnb-card-badge">PNG / JPG</span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">사이즈</span>
+            <span class="lnb-spec-value"><strong>686 × 200 px</strong> (고정)</span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">용량</span>
+            <span class="lnb-spec-value"><span class="warn">150 KB 이하</span></span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">크롭 영역</span>
+            <span class="lnb-spec-value">우측 <span class="purple">108 px</span> 크롭됨</span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">화질 기준</span>
+            <span class="lnb-spec-value">품질 점수 <span class="accent">60점 이상</span></span>
+          </div>
+        </div>
+        <div class="lnb-warn">
+          <div class="lnb-warn-label">⚠️ 크롭 주의</div>
+          <p>문구·메인 상품·핵심 비주얼이 <strong style="color:#EEE;">우측 108px 크롭 영역</strong>에 걸리지 않도록 확인하세요.</p>
+        </div>
+      </div>
+
+      <!-- 확장이미지 규격 -->
+      <div class="lnb-section">
+        <div class="lnb-section-header">
+          <span class="lnb-section-icon">📐</span>
+          <span class="lnb-section-title">확장이미지 규격</span>
+        </div>
+        <div class="lnb-card">
+          <div class="lnb-card-title">
+            확장이미지 (확장 후)
+            <span class="lnb-card-badge">PNG / JPG</span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">사이즈</span>
+            <span class="lnb-spec-value"><strong>686 × 380 px</strong> (고정)</span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">용량</span>
+            <span class="lnb-spec-value"><span class="warn">150 KB 이하</span></span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">닫기버튼</span>
+            <span class="lnb-spec-value">우상단 <span class="purple">68 px</span> 영역</span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">화질 기준</span>
+            <span class="lnb-spec-value">품질 점수 <span class="accent">60점 이상</span></span>
+          </div>
+        </div>
+        <div class="lnb-warn">
+          <div class="lnb-warn-label">⚠️ 닫기버튼 가독성</div>
+          <p>우상단 닫기버튼 영역의 <strong style="color:#EEE;">배경 복잡도</strong>가 높으면 버튼이 잘 보이지 않습니다. 프리뷰에서 직접 확인하세요.</p>
+        </div>
+      </div>
+
+      <hr class="lnb-divider">
+
+      <!-- 동영상 규격 -->
+      <div class="lnb-section">
+        <div class="lnb-section-header">
+          <span class="lnb-section-icon">🎬</span>
+          <span class="lnb-section-title">동영상 규격</span>
+        </div>
+        <div class="lnb-card">
+          <div class="lnb-card-title">
+            동영상
+            <span class="lnb-card-badge">MP4 / AVI</span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">해상도</span>
+            <span class="lnb-spec-value">최소 <strong>686 × 380 px</strong> 이상</span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">비율</span>
+            <span class="lnb-spec-value"><strong>16 : 9</strong> 유지 필수</span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">영상 길이</span>
+            <span class="lnb-spec-value"><span class="warn">60초 이내</span> 권장</span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">용량</span>
+            <span class="lnb-spec-value"><span class="warn">30 MB 이하</span></span>
+          </div>
+          <div class="lnb-spec-row">
+            <span class="lnb-spec-label">파일 형식</span>
+            <span class="lnb-spec-value">MP4, AVI</span>
+          </div>
+        </div>
+      </div>
+
+      <hr class="lnb-divider">
+
+      <!-- 오버레이 가이드 -->
+      <div class="lnb-section">
+        <div class="lnb-section-header">
+          <span class="lnb-section-icon">🎨</span>
+          <span class="lnb-section-title">프리뷰 오버레이 안내</span>
+        </div>
+        <div class="lnb-card">
+          <div class="lnb-overlay-item">
+            <div class="lnb-overlay-dot" style="background:#A050FF;"></div>
+            <span><strong style="color:#EEE;">대표이미지</strong> — 우측 크롭 108px 보라색 오버레이</span>
+          </div>
+          <div class="lnb-overlay-item">
+            <div class="lnb-overlay-dot" style="background:#A050FF;"></div>
+            <span><strong style="color:#EEE;">확장이미지</strong> — 우상단 닫기버튼 68px 보라색 오버레이</span>
+          </div>
+        </div>
+        <div class="lnb-tip">
+          <div class="lnb-tip-label">💡 TIP</div>
+          <p>소재 업로드 시 오버레이가 <strong style="color:#AAEECC;">자동으로</strong> 표시됩니다. 보라색 영역 안에 핵심 요소가 걸리지 않는지 확인하세요.</p>
+        </div>
+      </div>
+
+      <hr class="lnb-divider">
+
+      <!-- 공통 주의사항 -->
+      <div class="lnb-section">
+        <div class="lnb-section-header">
+          <span class="lnb-section-icon">🚨</span>
+          <span class="lnb-section-title">공통 주의사항</span>
+        </div>
+        <ul class="lnb-checklist">
+          <li>
+            <div class="lnb-check-dot"></div>
+            <span><strong style="color:#FF5252;">광고 문구 삽입 금지</strong> — 광고 플래그는 시스템이 자동 부착합니다</span>
+          </li>
+          <li>
+            <div class="lnb-check-dot"></div>
+            <span>이미지 내 <strong style="color:#EEE;">"광고", "AD"</strong> 등의 텍스트를 직접 삽입하지 마세요</span>
+          </li>
+          <li>
+            <div class="lnb-check-dot"></div>
+            <span>화질 점수 <strong style="color:#FF5252;">60점 미만</strong> 시 고화질 원본으로 교체 필요</span>
+          </li>
+          <li>
+            <div class="lnb-check-dot"></div>
+            <span>교체 후에도 경고 지속 시 <strong style="color:#EEE;">UX디자인팀</strong>에 검수 요청</span>
+          </li>
+        </ul>
+      </div>
+
+      <hr class="lnb-divider">
+
+      <!-- 일괄 검수 자동 분류 기준 -->
+      <div class="lnb-section">
+        <div class="lnb-section-header">
+          <span class="lnb-section-icon">📋</span>
+          <span class="lnb-section-title">일괄 검수 자동 분류 기준</span>
+        </div>
+        <ul class="lnb-checklist">
+          <li>
+            <div class="lnb-check-dot"></div>
+            <span>파일명에 <strong style="color:#EEE;">대표이미지 · 확장전</strong> 포함 → 대표이미지</span>
+          </li>
+          <li>
+            <div class="lnb-check-dot"></div>
+            <span>파일명에 <strong style="color:#EEE;">확장형 · 확장후</strong> 포함 → 확장이미지</span>
+          </li>
+          <li>
+            <div class="lnb-check-dot"></div>
+            <span>파일명에 <strong style="color:#EEE;">686x200</strong> 패턴 → 대표이미지</span>
+          </li>
+          <li>
+            <div class="lnb-check-dot"></div>
+            <span>파일명에 <strong style="color:#EEE;">686x380</strong> 패턴 → 확장이미지</span>
+          </li>
+          <li>
+            <div class="lnb-check-dot"></div>
+            <span>실제 해상도 <strong style="color:#EEE;">686×200</strong> → 대표이미지로 분류</span>
+          </li>
+          <li>
+            <div class="lnb-check-dot"></div>
+            <span>실제 해상도 <strong style="color:#EEE;">686×380</strong> → 확장이미지로 분류</span>
+          </li>
+          <li>
+            <div class="lnb-check-dot"></div>
+            <span><strong style="color:#EEE;">MP4 · AVI</strong> 확장자 → 동영상으로 자동 분류</span>
+          </li>
+          <li>
+            <div class="lnb-check-dot"></div>
+            <span>분류 불가 파일은 개별 검수 탭에서 직접 업로드</span>
+          </li>
+        </ul>
+      </div>
+
+      <!-- 푸터 -->
+      <div class="lnb-footer">
+        Check Mate · 익스팬더블 배너 검수<br>
+        문의 : UX디자인팀
+      </div>
+
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ── 메인 UI ────────────────────────────────────────────────────
@@ -336,7 +643,6 @@ st.caption("익스팬더블 광고 배너 소재 품질 및 규격 사전 검증
 
 
 def render_image_results(banner_type, uploaded):
-    """이미지 검수 결과·프리뷰 (업로더 제외)."""
     cfg = BANNER_SPECS[banner_type]
     exp_w, exp_h = cfg["size"]
 
@@ -409,7 +715,6 @@ def render_image_results(banner_type, uploaded):
 
 
 def render_video_results(uploaded):
-    """동영상 검수 결과·프리뷰 (업로더·가이드 제외)."""
     min_w, min_h = VIDEO_SPECS["min_size"]
     target_ratio = VIDEO_SPECS["aspect_ratio"]
     max_mb = VIDEO_SPECS["max_mb"]
@@ -489,7 +794,6 @@ def render_video_results(uploaded):
 
 
 def render_tab(banner_type):
-    # 가이드 범례
     if banner_type == "대표이미지":
         guide_html = """
         <div class="guide-container">
@@ -571,7 +875,7 @@ def render_video_tab():
     render_video_results(uploaded)
 
 
-# ── 일괄 업로드 (드래그 앤 드롭) ─────────────────────────────────
+# ── 일괄 업로드 ───────────────────────────────────────────────
 st.subheader("일괄 검수")
 st.caption(
     "대표이미지 **686×200** px 또는 파일명에 **대표이미지·확장전**, "
@@ -628,7 +932,6 @@ st.divider()
 st.subheader("개별 검수")
 
 tab1, tab2, tab3 = st.tabs(["📌 대표이미지 검수", "📐 확장이미지 검수", "🎬 동영상 검수"])
-
 
 with tab1:
     render_tab("대표이미지")
