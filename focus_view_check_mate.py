@@ -985,7 +985,7 @@ with col_upload:
         key="batch_uploader_all",
     )
 with col_reset:
-    if st.button("🗑️ 초기화", key="batch_reset_btn"):
+    if st.button("초기화", key="batch_reset_btn"):
         st.session_state.pop("batch_prev_fps", None)
         st.session_state.pop("batch_uploader_all", None)
         st.rerun()
