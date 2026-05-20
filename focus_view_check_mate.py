@@ -67,8 +67,14 @@ LAYOUT_ZONES = [
         "border": (255, 200, 0, 220),
     },
     {
-        "name": "Brand Logo",
-        "rect": (332, 68, 626, 122),
+        "name": "Vertical Logo",
+        "rect": (332, 68, 448, 122),
+        "fill": (0, 200, 255, 80),
+        "border": (0, 200, 255, 230),
+    },
+    {
+        "name": "Horizontal Logo",
+        "rect": (332, 68, 626, 100),
         "fill": (0, 200, 255, 80),
         "border": (0, 200, 255, 230),
     },
@@ -88,7 +94,8 @@ LAYOUT_ZONES = [
 
 ZONE_LEGEND = [
     {"name": "메인 이미지 영역", "color": "#FFC800"},
-    {"name": "로고 영역",        "color": "#00C8FF"},
+    {"name": "로고 영역 (세로형)",        "color": "#00C8FF"},
+    {"name": "로고 영역 (가로형)",       "color": "#00C8FF"},
     {"name": "텍스트 영역",      "color": "#7850FF"},
     {"name": "버튼 위치",        "color": "#00E676"},
 ]
@@ -526,6 +533,81 @@ button[data-baseweb="tab"][aria-selected="true"] {
 header    { visibility: hidden; }
 footer    { visibility: hidden; }
 .stImage  { display: flex; justify-content: center; }
+
+/* ── 사전 체크 공지 영역 ───────────────────────────────────── */
+.precheck-box {
+    background: #0E1A2B;
+    border: 1px solid #1E3A5A;
+    border-left: 4px solid #00B0FF;
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 4px 0 24px 0;
+}
+.precheck-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.precheck-header-icon { font-size: 15px; }
+.precheck-header-text {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #00B0FF;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+}
+.precheck-list {
+    list-style: none;
+    padding: 0; margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.precheck-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.precheck-num {
+    min-width: 22px; height: 22px;
+    background: #1A3A5A;
+    border: 1px solid #2A5A8A;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #00B0FF;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.precheck-text {
+    font-size: 0.9rem;
+    color: #ddeeff;
+    line-height: 1.6;
+}
+.precheck-text .kw {
+    display: inline-block;
+    background: #1A3050;
+    border: 1px solid #2A5080;
+    border-radius: 4px;
+    padding: 0px 7px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 2px;
+}
+.precheck-text .ext {
+    display: inline-block;
+    background: #1A2A40;
+    border: 1px solid #2A4060;
+    border-radius: 4px;
+    padding: 0px 7px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 2px;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -836,6 +918,39 @@ st.caption(
     "배너이미지 **686×386** px , 동영상 **MP4/AVI** 를 한 번에 올리면 "
     "자동으로 분류·검증합니다."
 )
+
+# ── 사전 체크 공지 영역 ───────────────────────────────────────
+st.markdown("""
+<div class="precheck-box">
+  <div class="precheck-header">
+    <span class="precheck-header-icon">📋</span>
+    <span class="precheck-header-text">검수 시 체크해야 할 사항</span>
+  </div>
+  <ul class="precheck-list">
+    <li class="precheck-item">
+      <div class="precheck-num">1</div>
+      <span class="precheck-text">
+        배치 가이드를 확인하시고 영역을 벗어난 요소는 수정 요청해주세요.
+      </span>
+    </li>
+    <li class="precheck-item">
+      <div class="precheck-num">2</div>
+      <span class="precheck-text">
+        로고 비율이 가로보다 세로가 더 길 경우
+        <span class="kw">세로형 로고 영역</span>으로 확인해주세요.
+      </span>
+    </li>
+    <li class="precheck-item">
+      <div class="precheck-num">3</div>
+      <span class="precheck-text">
+        로고 비율이 세로보다 가로가 더 길 경우
+        <span class="kw">가로형 로고 영역</span>으로 확인해주세요.
+      </span>
+    </li>
+  </ul>
+</div>
+""", unsafe_allow_html=True)
+
 batch_files = st.file_uploader(
     "소재 파일을 한 번에 선택하거나 드래그 앤 드롭하세요",
     accept_multiple_files=True,
