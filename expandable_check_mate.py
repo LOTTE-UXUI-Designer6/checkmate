@@ -206,6 +206,11 @@ def resolve_batch_upload(files):
     return file_list
 
 
+def _uploader_run() -> int:
+    """초기화 버튼을 누를 때마다 증가하는 카운터 — uploader key suffix로 사용."""
+    return st.session_state.get("uploader_run", 0)
+
+
 def resolve_single_upload(uploaded, state_key):
     fp_key = f"{state_key}_fp"
     if not uploaded:
@@ -508,6 +513,14 @@ button[data-baseweb="tab"][aria-selected="true"] {
 header    { visibility: hidden; }
 footer    { visibility: hidden; }
 .stImage  { display: flex; justify-content: center; }
+
+/* 초기화 버튼 컬럼 수직 가운데 정렬 */
+.st-emotion-cache-wfksaw {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    height: 100% !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -955,15 +968,17 @@ st.markdown("""
 
 col_upload, col_reset = st.columns([0.95, 0.05])
 with col_upload:
+    _run = _uploader_run()
     batch_files = st.file_uploader(
         "소재 파일을 한 번에 선택하거나 드래그 앤 드롭하세요",
         accept_multiple_files=True,
-        key="batch_uploader_all",
+        key=f"batch_uploader_all_{_run}",
     )
 with col_reset:
     if st.button("초기화", key="batch_reset_btn"):
+        # 카운터를 올려 uploader key를 교체 → 파일 목록까지 완전 초기화
+        st.session_state["uploader_run"] = _uploader_run() + 1
         st.session_state.pop("batch_prev_fps", None)
-        st.session_state.pop("batch_uploader_all", None)
         st.rerun()
 
 if batch_files:
