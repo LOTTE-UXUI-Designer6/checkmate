@@ -977,16 +977,16 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-batch_files = st.file_uploader(
-    "소재 파일을 한 번에 선택하거나 드래그 앤 드롭하세요",
-    accept_multiple_files=True,
-    key="batch_uploader_all",
-)
-
 col_upload, col_reset = st.columns([0.95, 0.05])
+with col_upload:
+    batch_files = st.file_uploader(
+        "소재 파일을 한 번에 선택하거나 드래그 앤 드롭하세요",
+        accept_multiple_files=True,
+        key="batch_uploader_all",
+    )
 with col_reset:
     if st.button("🗑️ 초기화", key="batch_reset_btn"):
-        st.session_state["batch_prev_fps"] = []
+        st.session_state.pop("batch_prev_fps", None)
         st.session_state.pop("batch_uploader_all", None)
         st.rerun()
 
