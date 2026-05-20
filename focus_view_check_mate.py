@@ -192,7 +192,16 @@ def resolve_batch_upload(files):
         st.session_state["batch_prev_fps"] = []
         return []
     file_list = list(files)
-    st.session_state["batch_prev_fps"] = [(f.name, f.size) for f in file_list]
+    current_fps = [(f.name, f.size) for f in file_list]
+    prev_fps = st.session_state.get("batch_prev_fps", [])
+
+    if prev_fps and len(current_fps) > len(prev_fps) and current_fps[:len(prev_fps)] == prev_fps:
+        # 새로 드래그 앤 드롭된 파일만 유지
+        new_files = file_list[len(prev_fps):]
+        st.session_state["batch_prev_fps"] = [(f.name, f.size) for f in new_files]
+        return new_files
+
+    st.session_state["batch_prev_fps"] = current_fps
     return file_list
 
 
@@ -222,14 +231,11 @@ def classify_batch_files(files):
                   or "banner" in name.lower()):
                 slot = "배너이미지"
             else:
-                slot = None
+                slot = "배너이미지"
 
-            if slot is None:
-                result["unmatched"].append((f.name, w, h))
-                continue
             if result[slot] is not None:
                 result["warnings"].append(
-                    f"{slot} 파일이 여러 개입니다. `{result[slot].name}` → `{f.name}`(으)로 교체됩니다."
+                    f"이미지 파일이 여러 개입니다. `{result[slot].name}` → `{f.name}`(으)로 교체됩니다."
                 )
             result[slot] = f
         else:
