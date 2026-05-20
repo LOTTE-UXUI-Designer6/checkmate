@@ -295,7 +295,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
 }
 .precheck-header-icon { font-size: 15px; }
 .precheck-header-text {
-    font-size: 1rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: #00B0FF;
     letter-spacing: -0.02em;
