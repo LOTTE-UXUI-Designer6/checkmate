@@ -145,7 +145,7 @@ def apply_layout_overlay(pil_image: Image.Image) -> Image.Image:
         )
 
     result = Image.alpha_composite(canvas, overlay)
-    return result.convert("RGB")
+    return result.convert("RGBA")
 
 
 def _norm_filename(filename):
