@@ -67,16 +67,16 @@ LAYOUT_ZONES = [
         "border": (255, 200, 0, 220),
     },
     {
-        "name": "Horizontal Logo",
-        "rect": (332, 90, 626, 122),
-        "fill": (239, 51, 251, 40),
-        "border": (239, 51, 251, 255),
-    },
-    {
         "name": "Vertical Logo",
         "rect": (332, 68, 448, 122),
         "fill": (0, 120, 255, 55),
         "border": (0, 120, 255, 255),
+    },
+    {
+        "name": "Horizontal Logo",
+        "rect": (332, 90, 626, 122),
+        "fill": (239, 51, 251, 140),
+        "border": (239, 51, 251, 255),
     },
     {
         "name": "Text",
