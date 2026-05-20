@@ -306,7 +306,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
     padding: 0; margin: 0;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 6px;
 }
 .precheck-item {
     display: flex;
@@ -326,7 +326,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
     margin-top: 1px;
 }
 .precheck-text {
-    font-size: 0.82rem;
+    font-size: 0.9rem;
     color: #ddeeff;
     line-height: 1.6;
 }
