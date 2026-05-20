@@ -67,14 +67,14 @@ LAYOUT_ZONES = [
         "border": (255, 200, 0, 220),
     },
     {
-        "name": "Vertical Logo",
-        "rect": (332, 68, 448, 122),
+        "name": "Horizontal Logo",
+        "rect": (332, 68, 626, 100),
         "fill": (0, 200, 255, 20),
         "border": (0, 200, 255, 230),
     },
     {
-        "name": "Horizontal Logo",
-        "rect": (332, 90, 626, 122),
+        "name": "Vertical Logo",
+        "rect": (332, 68, 448, 122),
         "fill": (0, 200, 255, 20),
         "border": (0, 200, 255, 230),
     },
@@ -122,6 +122,9 @@ def apply_layout_overlay(pil_image: Image.Image) -> Image.Image:
                 [(x1 + offset, y1 + offset), (x2 - offset, y2 - offset)],
                 outline=zone["border"],
             )
+
+    for zone in LAYOUT_ZONES:
+        x1, y1, x2, y2 = zone["rect"]
         label = zone["name"]
         cx = (x1 + x2) // 2
         cy = (y1 + y2) // 2
@@ -176,7 +179,11 @@ def resolve_single_upload(uploaded, state_key):
     if not uploaded:
         st.session_state.pop(fp_key, None)
         return None
-    st.session_state[fp_key] = (uploaded.name, uploaded.size)
+    current_fp = (uploaded.name, uploaded.size)
+    previous_fp = st.session_state.get(fp_key)
+    if previous_fp and previous_fp != current_fp:
+        st.session_state.pop(fp_key, None)
+    st.session_state[fp_key] = current_fp
     return uploaded
 
 
