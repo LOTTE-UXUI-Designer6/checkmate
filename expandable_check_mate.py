@@ -295,10 +295,10 @@ button[data-baseweb="tab"][aria-selected="true"] {
 }
 .precheck-header-icon { font-size: 15px; }
 .precheck-header-text {
-    font-size: 0.8rem;
+    font-size: 1rem;
     font-weight: 700;
     color: #00B0FF;
-    letter-spacing: 0.06em;
+    letter-spacing: -0.02em;
     text-transform: uppercase;
 }
 .precheck-list {
@@ -922,11 +922,6 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-st.caption(
-    "대표이미지 **686×200** px 또는 파일명에 **대표이미지·확장전**, "
-    "확장이미지 **686×380** px 또는 파일명에 **확장형·확장후**, 동영상 **MP4/AVI** 를 한 번에 올리면 "
-    "자동으로 분류·검증합니다."
-)
 batch_files = st.file_uploader(
     "소재 파일을 한 번에 선택하거나 드래그 앤 드롭하세요",
     accept_multiple_files=True,
