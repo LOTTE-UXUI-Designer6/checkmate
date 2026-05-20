@@ -74,7 +74,7 @@ LAYOUT_ZONES = [
     },
     {
         "name": "Horizontal Logo",
-        "rect": (332, 68, 626, 100),
+        "rect": (332, 90, 626, 100),
         "fill": (0, 200, 255, 80),
         "border": (0, 200, 255, 230),
     },
