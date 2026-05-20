@@ -178,9 +178,20 @@ def classify_batch_files(files):
 def resolve_batch_upload(files):
     if not files:
         st.session_state["batch_prev_fps"] = []
+        st.session_state["batch_uploader_all"] = []
         return []
     file_list = list(files)
-    st.session_state["batch_prev_fps"] = [(f.name, f.size) for f in file_list]
+    current_fps = [(f.name, f.size) for f in file_list]
+    prev_fps = st.session_state.get("batch_prev_fps", [])
+
+    if prev_fps and len(current_fps) > len(prev_fps) and current_fps[:len(prev_fps)] == prev_fps:
+        new_files = file_list[len(prev_fps):]
+        st.session_state["batch_prev_fps"] = [(f.name, f.size) for f in new_files]
+        st.session_state["batch_uploader_all"] = new_files
+        return new_files
+
+    st.session_state["batch_prev_fps"] = current_fps
+    st.session_state["batch_uploader_all"] = file_list
     return file_list
 
 
