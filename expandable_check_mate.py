@@ -200,11 +200,7 @@ def resolve_batch_upload(files):
     prev_fps = st.session_state.get("batch_prev_fps", [])
 
     if prev_fps and current_fps != prev_fps:
-        new_files = file_list
         st.session_state["batch_prev_fps"] = current_fps
-        st.session_state["batch_pending_files"] = [serialize_uploaded_file(f) for f in new_files]
-        st.session_state["batch_uploader_all"] = None
-        st.experimental_rerun()
 
     st.session_state["batch_prev_fps"] = current_fps
     return file_list
@@ -948,18 +944,11 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-if st.session_state.get("batch_pending_files") is not None:
-    st.session_state["batch_uploader_all"] = None
-
 batch_files = st.file_uploader(
     "소재 파일을 한 번에 선택하거나 드래그 앤 드롭하세요",
     accept_multiple_files=True,
     key="batch_uploader_all",
 )
-
-if not batch_files and st.session_state.get("batch_pending_files") is not None:
-    batch_files = [deserialize_uploaded_file(d) for d in st.session_state.pop("batch_pending_files")]
-
 if batch_files:
     batch_files = resolve_batch_upload(batch_files)
     assigned = classify_batch_files(batch_files)
