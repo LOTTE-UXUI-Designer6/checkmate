@@ -284,7 +284,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
 .check-pass { font-size: 1.5rem; font-weight: 800; color: #00E676; }
 .check-fail { font-size: 1.5rem; font-weight: 800; color: #FF5252; }
 .status-text { font-size: 0.9rem; color: #AAAAAA; }
-.guide-caption { color: #B26BFF; font-size: 1.05rem; margin-top: 12px; font-weight: 600; padding:0 20px 20px; }
+.guide-caption { color: #B26BFF; font-size: 1.05rem; margin-top: 12px; font-weight: 600; padding:0 20px 20px; text-aline:center;}
 
 /* 가이드 컨테이너 */
 .guide-container {
