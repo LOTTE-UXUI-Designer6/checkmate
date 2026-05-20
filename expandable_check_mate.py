@@ -279,6 +279,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
 .check-pass { font-size: 1.5rem; font-weight: 800; color: #00E676; }
 .check-fail { font-size: 1.5rem; font-weight: 800; color: #FF5252; }
 .status-text { font-size: 0.9rem; color: #AAAAAA; }
+.guide-caption { color: #B26BFF; font-size: 1.05rem; margin-top: 12px; font-weight: 600; }
 
 /* 가이드 컨테이너 */
 .guide-container {
@@ -737,11 +738,19 @@ def render_image_results(banner_type, uploaded):
 
     st.divider()
     preview = apply_guide_overlay(image, banner_type)
+    st.image(preview, width=actual_w)
     if banner_type == "대표이미지":
-        caption = "대표이미지 가이드 프리뷰 — 우측 크롭 영역(보라색) 침범 여부를 직접 확인하세요"
+        guide_caption = (
+            "대표이미지 가이드 프리뷰 — 우측 크롭 영역(보라색) 침범 여부를 직접 확인하세요"
+        )
     else:
-        caption = "확장이미지 가이드 프리뷰 — 우상단 닫기버튼 영역(보라색) 가독성을 직접 확인하세요"
-    st.image(preview, caption=caption, width=actual_w)
+        guide_caption = (
+            "확장이미지 가이드 프리뷰 — 우상단 닫기버튼 영역(보라색) 가독성을 직접 확인하세요"
+        )
+    st.markdown(
+        f'<div class="guide-caption">{guide_caption}</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def render_video_results(uploaded):
