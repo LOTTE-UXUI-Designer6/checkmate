@@ -738,7 +738,7 @@ def render_image_results(banner_type, uploaded):
     st.divider()
     preview = apply_guide_overlay(image, banner_type)
     if banner_type == "대표이미지":
-        caption = "대표이미지 가이드 프리뷰 — <span style='color:purple;'>우측 크롭 영역(보라색) 침범 여부를 직접 확인하세요</span>"
+        caption = "대표이미지 가이드 프리뷰 —" <span style='color:purple;'>"우측 크롭 영역(보라색) 침범 여부를 직접 확인하세요"</span>
     else:
         caption = "확장이미지 가이드 프리뷰 — 우상단 닫기버튼 영역(보라색) 가독성을 직접 확인하세요"
     st.image(preview, caption=caption, width=actual_w)
