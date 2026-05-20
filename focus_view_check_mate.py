@@ -982,6 +982,14 @@ batch_files = st.file_uploader(
     accept_multiple_files=True,
     key="batch_uploader_all",
 )
+
+col_upload, col_reset = st.columns([0.95, 0.05])
+with col_reset:
+    if st.button("🗑️ 초기화", key="batch_reset_btn"):
+        st.session_state["batch_prev_fps"] = []
+        st.session_state["batch_uploader_all"] = None
+        st.rerun()
+
 if batch_files:
     batch_files = resolve_batch_upload(batch_files)
     assigned    = classify_batch_files(batch_files)
