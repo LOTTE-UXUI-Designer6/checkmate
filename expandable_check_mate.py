@@ -327,7 +327,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
 }
 .precheck-text {
     font-size: 0.82rem;
-    color: #AACCEE;
+    color: #ddeeff;
     line-height: 1.6;
 }
 .precheck-text .kw {
