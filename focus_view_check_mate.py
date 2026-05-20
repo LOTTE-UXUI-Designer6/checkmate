@@ -69,14 +69,14 @@ LAYOUT_ZONES = [
     {
         "name": "Horizontal Logo",
         "rect": (332, 90, 626, 122),
-        "fill": (35, 175, 255, 70),
-        "border": (35, 175, 255, 230),
+        "fill": (35, 175, 255, 40),
+        "border": (35, 175, 255, 255),
     },
     {
         "name": "Vertical Logo",
         "rect": (332, 68, 448, 122),
-        "fill": (0, 120, 255, 90),
-        "border": (0, 120, 255, 230),
+        "fill": (0, 120, 255, 55),
+        "border": (0, 120, 255, 255),
     },
     {
         "name": "Text",
@@ -126,23 +126,39 @@ def apply_layout_overlay(pil_image: Image.Image) -> Image.Image:
     for zone in LAYOUT_ZONES:
         x1, y1, x2, y2 = zone["rect"]
         label = zone["name"]
-        cx = (x1 + x2) // 2
-        cy = (y1 + y2) // 2
+        if "Logo" in label:
+            tx = x1 + 8
+            ty = y1 + 8
+        else:
+            tx = (x1 + x2) // 2
+            ty = (y1 + y2) // 2
         bbox = draw.textbbox((0, 0), label, font=font)
         tw   = bbox[2] - bbox[0]
         th   = bbox[3] - bbox[1]
         pad  = 4
-        draw.rectangle(
-            [(cx - tw // 2 - pad, cy - th // 2 - pad),
-             (cx + tw // 2 + pad, cy + th // 2 + pad)],
-            fill=(0, 0, 0, 160),
-        )
-        draw.text(
-            (cx - tw // 2, cy - th // 2),
-            label,
-            font=font,
-            fill=(255, 255, 255, 240),
-        )
+        if "Logo" in label:
+            draw.rectangle(
+                [(tx - 2, ty - 2), (tx + tw + 2, ty + th + 2)],
+                fill=(0, 0, 0, 180),
+            )
+            draw.text(
+                (tx, ty),
+                label,
+                font=font,
+                fill=(255, 255, 255, 240),
+            )
+        else:
+            draw.rectangle(
+                [(tx - tw // 2 - pad, ty - th // 2 - pad),
+                 (tx + tw // 2 + pad, ty + th // 2 + pad)],
+                fill=(0, 0, 0, 160),
+            )
+            draw.text(
+                (tx - tw // 2, ty - th // 2),
+                label,
+                font=font,
+                fill=(255, 255, 255, 240),
+            )
 
     result = Image.alpha_composite(canvas, overlay)
     return result.convert("RGBA")
