@@ -68,14 +68,14 @@ LAYOUT_ZONES = [
     },
     {
         "name": "Horizontal Logo",
-        "rect": (332, 68, 626, 100),
-        "fill": (0, 200, 255, 20),
+        "rect": (332, 90, 626, 122),
+        "fill": (0, 200, 255, 60),
         "border": (0, 200, 255, 230),
     },
     {
         "name": "Vertical Logo",
         "rect": (332, 68, 448, 122),
-        "fill": (0, 200, 255, 20),
+        "fill": (0, 200, 255, 60),
         "border": (0, 200, 255, 230),
     },
     {
@@ -823,7 +823,7 @@ def render_banner_results(uploaded, toggle_key: str):
     st.divider()
 
     show_guide = st.toggle(
-        "🗺️ 배치 가이드 보기",
+        "배치 가이드 보기",
         key=toggle_key,
         help="활성화하면 주요 이미지·로고·텍스트·버튼 배치 기준 영역이 컬러 딤드로 표시됩니다.",
     )
