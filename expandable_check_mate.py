@@ -1,3 +1,4 @@
+import io
 import re
 import unicodedata
 import streamlit as st
@@ -76,6 +77,21 @@ QUALITY_THRESHOLD = 60
 
 def _norm_filename(filename):
     return unicodedata.normalize("NFC", Path(filename).name)
+
+
+def serialize_uploaded_file(uploaded):
+    return {
+        "name": uploaded.name,
+        "type": getattr(uploaded, "type", ""),
+        "data": uploaded.getvalue(),
+    }
+
+
+def deserialize_uploaded_file(data):
+    restored = io.BytesIO(data["data"])
+    restored.name = data["name"]
+    restored.type = data.get("type", "")
+    return restored
 
 
 def slot_from_filename(filename):
@@ -178,20 +194,19 @@ def classify_batch_files(files):
 def resolve_batch_upload(files):
     if not files:
         st.session_state["batch_prev_fps"] = []
-        st.session_state["batch_uploader_all"] = []
         return []
     file_list = list(files)
     current_fps = [(f.name, f.size) for f in file_list]
     prev_fps = st.session_state.get("batch_prev_fps", [])
 
-    if prev_fps and len(current_fps) > len(prev_fps) and current_fps[:len(prev_fps)] == prev_fps:
-        new_files = file_list[len(prev_fps):]
-        st.session_state["batch_prev_fps"] = [(f.name, f.size) for f in new_files]
-        st.session_state["batch_uploader_all"] = new_files
-        return new_files
+    if prev_fps and current_fps != prev_fps:
+        new_files = file_list
+        st.session_state["batch_prev_fps"] = current_fps
+        st.session_state["batch_pending_files"] = [serialize_uploaded_file(f) for f in new_files]
+        st.session_state["batch_uploader_all"] = None
+        st.experimental_rerun()
 
     st.session_state["batch_prev_fps"] = current_fps
-    st.session_state["batch_uploader_all"] = file_list
     return file_list
 
 
@@ -933,11 +948,18 @@ st.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
+if st.session_state.get("batch_pending_files") is not None:
+    st.session_state["batch_uploader_all"] = None
+
 batch_files = st.file_uploader(
     "소재 파일을 한 번에 선택하거나 드래그 앤 드롭하세요",
     accept_multiple_files=True,
     key="batch_uploader_all",
 )
+
+if not batch_files and st.session_state.get("batch_pending_files") is not None:
+    batch_files = [deserialize_uploaded_file(d) for d in st.session_state.pop("batch_pending_files")]
+
 if batch_files:
     batch_files = resolve_batch_upload(batch_files)
     assigned = classify_batch_files(batch_files)
