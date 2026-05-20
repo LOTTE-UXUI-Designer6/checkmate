@@ -278,6 +278,82 @@ button[data-baseweb="tab"][aria-selected="true"] {
     color: #BBBBBB; margin-bottom: 16px;
 }
 
+/* ── 사전 체크 공지 영역 ───────────────────────────────────── */
+.precheck-box {
+    background: #0E1A2B;
+    border: 1px solid #1E3A5A;
+    border-left: 4px solid #00B0FF;
+    border-radius: 12px;
+    padding: 18px 22px;
+    margin: 4px 0 24px 0;
+}
+.precheck-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.precheck-header-icon { font-size: 15px; }
+.precheck-header-text {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #00B0FF;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.precheck-list {
+    list-style: none;
+    padding: 0; margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.precheck-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+.precheck-num {
+    min-width: 22px; height: 22px;
+    background: #1A3A5A;
+    border: 1px solid #2A5A8A;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #00B0FF;
+    flex-shrink: 0;
+    margin-top: 1px;
+}
+.precheck-text {
+    font-size: 0.82rem;
+    color: #AACCEE;
+    line-height: 1.6;
+}
+.precheck-text .kw {
+    display: inline-block;
+    background: #1A3050;
+    border: 1px solid #2A5080;
+    border-radius: 4px;
+    padding: 0px 7px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 2px;
+}
+.precheck-text .ext {
+    display: inline-block;
+    background: #1A2A40;
+    border: 1px solid #2A4060;
+    border-radius: 4px;
+    padding: 0px 7px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #80CCFF;
+    margin: 0 2px;
+    font-family: monospace;
+}
+
 /* ── 사이드바 전체 ─────────────────────────────────────────── */
 [data-testid="stSidebar"] {
     background-color: #0D0D0D !important;
@@ -559,10 +635,6 @@ with st.sidebar:
         </ul>
       </div>
 
-      <hr class="lnb-divider">
-
-     
-
       <!-- 푸터 -->
       <div class="lnb-footer">
         Check Mate · 익스팬더블 배너 검수<br>
@@ -813,6 +885,43 @@ def render_video_tab():
 
 # ── 일괄 업로드 ───────────────────────────────────────────────
 st.subheader("일괄 검수")
+
+# ── 사전 체크 공지 영역 ───────────────────────────────────────
+st.markdown("""
+<div class="precheck-box">
+  <div class="precheck-header">
+    <span class="precheck-header-icon">📋</span>
+    <span class="precheck-header-text">업로드 전 파일명을 확인해 주세요</span>
+  </div>
+  <ul class="precheck-list">
+    <li class="precheck-item">
+      <div class="precheck-num">1</div>
+      <span class="precheck-text">
+        대표 이미지 파일명에
+        <span class="kw">대표이미지</span> 또는 <span class="kw">확장전</span>
+        워딩이 포함되어 있어야 검수 가능합니다.
+      </span>
+    </li>
+    <li class="precheck-item">
+      <div class="precheck-num">2</div>
+      <span class="precheck-text">
+        확장 이미지 파일명에
+        <span class="kw">확장형</span> 또는 <span class="kw">확장후</span>
+        워딩이 포함되어 있어야 검수 가능합니다.
+      </span>
+    </li>
+    <li class="precheck-item">
+      <div class="precheck-num">3</div>
+      <span class="precheck-text">
+        동영상 파일 확장자는
+        <span class="ext">.MP4</span> 또는 <span class="ext">.AVI</span>
+        이어야 합니다.
+      </span>
+    </li>
+  </ul>
+</div>
+""", unsafe_allow_html=True)
+
 st.caption(
     "대표이미지 **686×200** px 또는 파일명에 **대표이미지·확장전**, "
     "확장이미지 **686×380** px 또는 파일명에 **확장형·확장후**, 동영상 **MP4/AVI** 를 한 번에 올리면 "
