@@ -69,8 +69,8 @@ LAYOUT_ZONES = [
     {
         "name": "Horizontal Logo",
         "rect": (332, 90, 626, 122),
-        "fill": (35, 175, 255, 40),
-        "border": (35, 175, 255, 255),
+        "fill": (239, 51, 251, 40),
+        "border": (239, 51, 251, 255),
     },
     {
         "name": "Vertical Logo",
@@ -95,7 +95,7 @@ LAYOUT_ZONES = [
 ZONE_LEGEND = [
     {"name": "메인 이미지 영역", "color": "#FFC800"},
     {"name": "로고 영역 (세로형)",        "color": "#0078FF"},
-    {"name": "로고 영역 (가로형)",       "color": "#23B7FF"},
+    {"name": "로고 영역 (가로형)",       "color": "#d936e3"},
     {"name": "텍스트 영역",      "color": "#7850FF"},
     {"name": "버튼 위치",        "color": "#00E676"},
 ]
