@@ -944,7 +944,7 @@ st.subheader("일괄 검수")
 st.markdown("""
 <div class="precheck-box">
   <div class="precheck-header">
-    <span class="precheck-header-icon">📋</span>
+    <span class="precheck-header-icon">🚨</span>
     <span class="precheck-header-text">업로드 전 파일명을 확인해 주세요</span>
   </div>
   <ul class="precheck-list">

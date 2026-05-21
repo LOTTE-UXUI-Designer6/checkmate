@@ -972,7 +972,7 @@ st.subheader("일괄 검수")
 st.markdown("""
 <div class="precheck-box">
   <div class="precheck-header">
-    <span class="precheck-header-icon">📋</span>
+    <span class="precheck-header-icon">🚨</span>
     <span class="precheck-header-text">검수 시 체크해야 할 사항</span>
   </div>
   <ul class="precheck-list">
