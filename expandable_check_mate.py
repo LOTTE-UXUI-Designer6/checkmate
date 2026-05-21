@@ -306,7 +306,16 @@ button[data-baseweb="tab"][aria-selected="true"] {
 }
 .guide-item   { display: flex; align-items: center; font-size: 0.85rem; color: #DDDDDD; }
 .color-box    { width: 16px; height: 16px; border-radius: 4px; margin-right: 8px; flex-shrink: 0; }
-.warning-text { font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+.warning-text { font-size: 0.85rem; font-weight: bold; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+div[role="alert"],
+.stAlert,
+.stAlert *,
+.stMarkdown,
+.stMarkdown p,
+.stMarkdown span {
+    white-space: normal !important;
+    word-break: break-word !important;
+}
 
 /* 규격 뱃지 */
 .spec-badge {

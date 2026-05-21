@@ -327,7 +327,16 @@ button[data-baseweb="tab"][aria-selected="true"] {
     align-items: center; gap: 20px; margin-bottom: 8px;
 }
 .guide-item   { display: flex; align-items: center; font-size: 0.85rem; color: #DDDDDD; }
-.warning-text { font-size: 0.85rem; font-weight: bold; display: flex; align-items: center; gap: 5px; }
+.warning-text { font-size: 0.85rem; font-weight: bold; display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+div[role="alert"],
+.stAlert,
+.stAlert *,
+.stMarkdown,
+.stMarkdown p,
+.stMarkdown span {
+    white-space: normal !important;
+    word-break: break-word !important;
+}
 
 /* 배치 가이드 범례 */
 .layout-legend {
