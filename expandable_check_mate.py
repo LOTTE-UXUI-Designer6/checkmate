@@ -520,6 +520,7 @@ footer    { visibility: hidden; }
     align-items: center !important;
     justify-content: center !important;
     height: 100% !important;
+    white-space: nowrap !important;
 }
 </style>
 """, unsafe_allow_html=True)

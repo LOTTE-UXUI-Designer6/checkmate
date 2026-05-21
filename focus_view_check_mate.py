@@ -574,6 +574,7 @@ footer    { visibility: hidden; }
     align-items: center !important;
     justify-content: center !important;
     height: 100% !important;
+    white-space: nowrap !important;
 }
 
 /* ── 사전 체크 공지 영역 ───────────────────────────────────── */
