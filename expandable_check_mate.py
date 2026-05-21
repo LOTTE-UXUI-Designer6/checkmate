@@ -293,7 +293,7 @@ button[data-baseweb="tab"][aria-selected="true"] {
     min-width: 56px !important;
     flex: none !important;
 }
-.guide-caption { color: #B26BFF; font-size: 1.05rem; margin-top: 12px; font-weight: 600; padding:0 20px 20px; text-aline:center;}
+.guide-caption { color: #B26BFF; font-size: 1.05rem; margin-top: 12px; font-weight: 600; padding:0 20px 20px; text-align:center;}
 
 /* 가이드 컨테이너 */
 .guide-container {
