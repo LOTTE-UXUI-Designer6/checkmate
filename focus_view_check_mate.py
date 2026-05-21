@@ -307,6 +307,15 @@ button[data-baseweb="tab"][aria-selected="true"] {
 .check-pass { font-size: 1.5rem; font-weight: 800; color: #00E676; }
 .check-fail { font-size: 1.5rem; font-weight: 800; color: #FF5252; }
 .status-text { font-size: 0.9rem; color: #AAAAAA; }
+.stButton > button {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    padding: 6px 10px !important;
+    width: 72px !important;
+    min-width: 56px !important;
+    flex: none !important;
+}
 
 /* 가이드 컨테이너 */
 .guide-container {
