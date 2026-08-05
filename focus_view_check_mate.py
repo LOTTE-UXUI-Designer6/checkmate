@@ -102,7 +102,8 @@ ZONE_LEGEND = [
 
 
 def apply_layout_overlay(pil_image: Image.Image) -> Image.Image:
-    display = pil_image.resize((CANVAS_W, CANVAS_H), Image.Resampling.LANCZOS)
+    resample_mode = getattr(Image, 'Resampling', Image).LANCZOS if hasattr(Image, 'Resampling') else Image.LANCZOS
+    display = pil_image.resize((CANVAS_W, CANVAS_H), resample_mode)
     canvas  = display.convert("RGBA")
     overlay = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
     draw    = ImageDraw.Draw(overlay)
@@ -890,8 +891,13 @@ def render_banner_results(uploaded, toggle_key: str):
         preview = image
         caption = f"배너이미지 프리뷰 — {actual_w}×{actual_h}px"
 
-    if isinstance(preview, Image.Image) and preview.mode != "RGB":
-        preview = preview.convert("RGB")
+    if isinstance(preview, Image.Image):
+        if preview.mode != "RGB":
+            preview = preview.convert("RGB")
+        buf = io.BytesIO()
+        preview.save(buf, format="PNG")
+        buf.seek(0)
+        preview = buf.getvalue()
 
     st.image(preview, caption=caption, use_column_width=False, width=min(actual_w, CANVAS_W))
 
