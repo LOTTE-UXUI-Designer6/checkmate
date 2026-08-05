@@ -899,7 +899,7 @@ def render_banner_results(uploaded, toggle_key: str):
         buf.seek(0)
         preview = buf
 
-    st.image(preview, caption=caption, use_column_width=False, width=min(actual_w, CANVAS_W))
+    st.image(preview, caption=caption, use_container_width=False, width=min(actual_w, CANVAS_W))
 
 
 # ── 동영상 검수 렌더 ────────────────────────────────────────────
