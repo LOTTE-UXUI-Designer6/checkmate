@@ -897,7 +897,7 @@ def render_banner_results(uploaded, toggle_key: str):
         buf = io.BytesIO()
         preview.save(buf, format="PNG")
         buf.seek(0)
-        preview = buf.getvalue()
+        preview = buf
 
     st.image(preview, caption=caption, use_column_width=False, width=min(actual_w, CANVAS_W))
 
