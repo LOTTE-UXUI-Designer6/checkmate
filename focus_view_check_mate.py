@@ -161,7 +161,7 @@ def apply_layout_overlay(pil_image: Image.Image) -> Image.Image:
             )
 
     result = Image.alpha_composite(canvas, overlay)
-    return result.convert("RGBA")
+    return result.convert("RGB")
 
 
 def _norm_filename(filename):
@@ -889,6 +889,9 @@ def render_banner_results(uploaded, toggle_key: str):
     else:
         preview = image
         caption = f"배너이미지 프리뷰 — {actual_w}×{actual_h}px"
+
+    if isinstance(preview, Image.Image) and preview.mode != "RGB":
+        preview = preview.convert("RGB")
 
     st.image(preview, caption=caption, use_column_width=False, width=min(actual_w, CANVAS_W))
 
